@@ -7,6 +7,7 @@ Infra com **PHP 8.3 + Apache** e **PostgreSQL 16** via Docker.
 
 ## Requisitos
 
+- WSL
 - Docker Desktop (Windows/Mac/Linux)
 - (Windows) Compartilhar a unidade do projeto nas _Settings → Resources → File Sharing_ do Docker
 - Portas livres:
@@ -37,7 +38,24 @@ project-root/
 
 ---
 
-## Subir o ambiente (Quick Start)
+## Instalar o composer e dependencias
+
+> Execute os comandos no diretório raiz (onde está o `docker-compose.yml`).
+
+### 1) Instalar o composer
+
+```bash
+sudo mv composer.phar /usr/local/bin/composer
+```
+
+### 2) Instalar dependencias
+
+```bash
+cd api/laravel
+composer install
+```
+
+## Subir o ambiente Docker (Quick Start)
 
 > Execute os comandos no diretório raiz (onde está o `docker-compose.yml`).
 
@@ -56,7 +74,7 @@ docker compose exec api php artisan key:generate
 docker compose exec api php artisan optimize:clear
 ```
 
-### 3) `.env` do Laravel (src/api/laravel/.env)
+### 3) `.env` do Laravel (src/api/laravel/.env) (usar o .env.example se preferir)
 
 ```env
 APP_NAME="PDG API"
