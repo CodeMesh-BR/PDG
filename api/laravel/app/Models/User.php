@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+
+class User extends Authenticatable
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'display_name',
+        'full_name',
+        'address',
+        'phone',
+        'role',
+        'email',
+        'password',
+        'skills',
+        'availability',
+        'contract_pdf_path',
+        'work_certificate_pdf_path',
+    ];
+
+    protected $hidden = ['password', 'remember_token'];
+
+    protected $casts = [
+        'skills' => 'array',
+        'availability' => 'array',
+        'email_verified_at' => 'datetime',
+    ];
+}
