@@ -1,3 +1,3 @@
 [submodule "api/laravel"]
 	path = api/laravel
-	url = https://github.com/CodeMesh-BR/PDG-API/blob/main/api/laravel
+	url = https://github.com/CodeMesh-BR/pdg-laravel.git
