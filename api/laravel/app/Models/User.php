@@ -18,7 +18,6 @@ class User extends Authenticatable
         'role',
         'email',
         'password',
-        'skills',
         'availability',
         'contract_pdf_path',
         'work_certificate_pdf_path',
@@ -27,8 +26,12 @@ class User extends Authenticatable
     protected $hidden = ['password', 'remember_token'];
 
     protected $casts = [
-        'skills' => 'array',
         'availability' => 'array',
         'email_verified_at' => 'datetime',
     ];
+
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'service_user')->withTimestamps();
+    }
 }

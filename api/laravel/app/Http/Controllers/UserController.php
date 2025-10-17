@@ -7,17 +7,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
-    public function index()
+    // GET /api/users
+    public function index(Request $request)
     {
-        return response()->json(
-            \App\Models\User::query()
-                ->select('id', 'display_name', 'full_name', 'email', 'role', 'created_at')
-                ->orderByDesc('id')
-                ->paginate(15)
-        );
+        $query = User::query()
+            ->select('id', 'display_name', 'full_name', 'email', 'role', 'created_at')
+            ->orderByDesc('id');
+
+        if ($request->boolean('include_services')) {
+            $query->with(['services:id,type']);
+        }
+
+        return response()->json($query->paginate(15));
     }
 
     // PATCH/PUT /api/users/{user}
@@ -27,44 +32,24 @@ class UserController extends Controller
             'display_name' => ['sometimes', 'string', 'min:2', 'max:150'],
             'full_name'    => ['sometimes', 'string', 'min:3', 'max:150'],
 
-            // troca de senha: exige confirmação
-            'password' => [
-                'sometimes',
-                'string',
-                'min:8',
-                'max:16',
-                'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,16}$/',
-                'confirmed',
-            ],
+            'password' => ['sometimes', 'string', 'min:8', 'max:16', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,16}$/', 'confirmed'],
+            'current_password' => ['nullable', 'string'],
 
-            // arrays
-            'skills'          => ['sometimes', 'array'],
-            'skills.*'        => ['string', Rule::in([
-                'service-cleaning',
-                'delivery-cleaning',
-                'full-details',
-                'paint-correction',
-                'paint-protection',
-                'buffers'
-            ])],
-            'availability'    => ['sometimes', 'array'],
-            'availability.*'  => ['string', Rule::in(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])],
+            'availability'   => ['sometimes', 'array'],
+            'availability.*' => ['string', Rule::in(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])],
 
-            // salvar URL já pronta
             'contract_pdf_path'         => ['sometimes', 'string', 'max:2048'],
             'work_certificate_pdf_path' => ['sometimes', 'string', 'max:2048'],
 
-            // upload de PDF (multipart/form-data)
             'contract_pdf'         => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
             'work_certificate_pdf' => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
 
-            // senha atual (checamos manualmente se password vier)
-            'current_password' => ['nullable', 'string'],
+            'service_ids'   => ['sometimes', 'array'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
         ], [
             'password.regex' => 'Password must be 8-16 characters long, with letters and numbers.',
         ]);
 
-        // Uploads
         if ($request->hasFile('contract_pdf')) {
             $path = $request->file('contract_pdf')->store('contracts', 'public');
             $validated['contract_pdf_path'] = Storage::disk('public')->url($path);
@@ -74,7 +59,6 @@ class UserController extends Controller
             $validated['work_certificate_pdf_path'] = Storage::disk('public')->url($path);
         }
 
-        // Troca de senha: exigir current_password e validar contra o próprio $user
         if ($request->filled('password')) {
             if (!$request->filled('current_password')) {
                 return response()->json([
@@ -91,7 +75,17 @@ class UserController extends Controller
             $validated['password'] = Hash::make($validated['password']);
         }
 
-        $user->fill($validated)->save();
+        $toFill = collect($validated)->except('service_ids')->all();
+
+        DB::transaction(function () use ($user, $toFill, $validated) {
+            $user->fill($toFill)->save();
+
+            if (array_key_exists('service_ids', $validated)) {
+                $user->services()->sync($validated['service_ids'] ?? []);
+            }
+        });
+
+        $user->loadMissing('services:id,type,value');
 
         return response()->json([
             'message' => 'User updated successfully.',
@@ -101,10 +95,10 @@ class UserController extends Controller
                 'full_name'                 => $user->full_name,
                 'email'                     => $user->email,
                 'role'                      => $user->role,
-                'skills'                    => $user->skills,
                 'availability'              => $user->availability,
                 'contract_pdf_path'         => $user->contract_pdf_path,
                 'work_certificate_pdf_path' => $user->work_certificate_pdf_path,
+                'services'                  => $user->services->map->only(['id', 'type']),
                 'updated_at'                => $user->updated_at,
             ],
         ]);
@@ -113,6 +107,8 @@ class UserController extends Controller
     // GET /api/users/{user}
     public function show(User $user)
     {
+        $user->loadMissing('services:id,type,value');
+
         return response()->json([
             'data' => [
                 'id'                        => $user->id,
@@ -122,10 +118,10 @@ class UserController extends Controller
                 'address'                   => $user->address,
                 'phone'                     => $user->phone,
                 'role'                      => $user->role,
-                'skills'                    => $user->skills,
                 'availability'              => $user->availability,
                 'contract_pdf_path'         => $user->contract_pdf_path,
                 'work_certificate_pdf_path' => $user->work_certificate_pdf_path,
+                'services'                  => $user->services->map->only(['id', 'type']),
                 'updated_at'                => $user->updated_at,
                 'created_at'                => $user->created_at,
             ],
@@ -136,6 +132,11 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $user->delete();
-        return response()->json(null, 204);
+        return response()->json([
+            'message' => 'User deleted successfully.',
+            'data'    => [
+                'id'  => $user->id,
+            ]
+        ], 204);
     }
 }

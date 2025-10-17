@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\Service;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -16,11 +17,10 @@ class UserSeeder extends Seeder
             [
                 'display_name' => 'Admin',
                 'full_name'    => 'Admin User',
-                'password'     => Hash::make('admin1234'), // 8–16
+                'password'     => Hash::make('admin12345'), // 8–16
                 'role'         => 'admin',
                 'address'      => 'Av. Principal, 100',
                 'phone'        => '+351 900000000',
-                'skills'       => ['service-cleaning', 'buffers'],
                 'availability' => ['mon', 'tue', 'wed', 'thu', 'fri'],
             ]
         );
@@ -35,12 +35,15 @@ class UserSeeder extends Seeder
                 'role'         => 'user',
                 'address'      => 'Rua Secundária, 200',
                 'phone'        => '+351 911111111',
-                'skills'       => ['delivery-cleaning'],
                 'availability' => ['sat', 'sun'],
             ]
         );
 
         // +10 usuários aleatórios
         User::factory()->count(10)->create();
+
+        $admin = User::where('email', 'admin@example.com')->first();
+        $serviceIds = Service::inRandomOrder()->limit(3)->pluck('id');
+        $admin->services()->sync($serviceIds);
     }
 }
