@@ -131,6 +131,19 @@ docker compose exec api php artisan migrate:status
 
 Base URL: `http://localhost:8080`
 
+### Gerar token
+
+**POST** `/auth/login`
+
+```json
+{
+	"email": "admin@example.com",
+	"password": "admin12345"
+}
+```
+
+Retorna access_token para ser usado como Bearer
+
 ### Criar usuário
 
 **POST** `/api/users`
@@ -145,12 +158,6 @@ Base URL: `http://localhost:8080`
 	"role": "user"
 }
 ```
-
-Respostas:
-
-- **201** `User created successfully`
-- **409** `Email already exists.`
-- **422** validação
 
 ### Atualizar usuário (parcial)
 
@@ -198,6 +205,8 @@ docker compose exec api php artisan route:list
 docker compose exec api php artisan optimize:clear
 docker compose exec api php artisan config:clear
 docker compose exec api php artisan route:clear
+docker compose exec api php artisan route:list
+docker compose exec api php artisan tinker
 
 # permissões (cache/log)
 docker compose exec api sh -lc 'chown -R www-data:www-data storage bootstrap/cache && chmod -R ug+rw storage bootstrap/cache'

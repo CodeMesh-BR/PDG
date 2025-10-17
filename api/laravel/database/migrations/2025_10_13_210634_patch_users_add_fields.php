@@ -25,9 +25,6 @@ return new class extends Migration {
             if (!Schema::hasColumn('users', 'phone')) {
                 $table->string('phone', 20)->nullable();
             }
-            if (!Schema::hasColumn('users', 'skills')) {
-                $table->json('skills')->nullable();
-            }
             if (!Schema::hasColumn('users', 'availability')) {
                 $table->json('availability')->nullable();
             }
@@ -76,9 +73,6 @@ return new class extends Migration {
             }
             if (Schema::hasColumn('users', 'availability')) {
                 $table->dropColumn('availability');
-            }
-            if (Schema::hasColumn('users', 'skills')) {
-                $table->dropColumn('skills');
             }
             if (Schema::hasColumn('users', 'phone')) {
                 $table->dropColumn('phone');

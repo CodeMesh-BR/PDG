@@ -12,7 +12,6 @@ class UserRegistrationController extends Controller
 {
     public function store(Request $request)
     {
-        // normalização
         $request->merge([
             'full_name' => trim((string) $request->input('full_name')),
             'display_name' => trim((string) $request->input('display_name', $request->input('full_name'))),
@@ -29,25 +28,17 @@ class UserRegistrationController extends Controller
             'password'     => ['required', 'string', 'min:8', 'max:16', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,16}$/'],
             'role'         => ['required', 'string', 'max:50'],
 
-            // opcionais já no cadastro
-            'skills'          => ['sometimes', 'array'],
-            'skills.*'        => ['string', Rule::in([
-                'service-cleaning',
-                'delivery-cleaning',
-                'full-details',
-                'paint-correction',
-                'paint-protection',
-                'buffers'
-            ])],
-            'availability'    => ['sometimes', 'array'],
-            'availability.*'  => ['string', Rule::in(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])],
+            'service_ids'   => ['sometimes', 'array'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
+
+            'availability'   => ['sometimes', 'array'],
+            'availability.*' => ['string', Rule::in(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])],
         ], [
             'phone.regex'    => 'Phone must contain only digits, space, +, -, ( ) and be 7–20 characters long.',
             'password.regex' => 'Password must be 8–16 characters and contain letters and numbers.',
             'email.unique'   => 'Email already exists.',
         ]);
 
-        // 409 explícito (antes de tentar criar)
         if (User::where('email', $validated['email'])->exists()) {
             return response()->json(['message' => 'Email already exists.'], 409);
         }
@@ -61,9 +52,12 @@ class UserRegistrationController extends Controller
                 'role'         => $validated['role'],
                 'address'      => $validated['address'] ?? null,
                 'phone'        => $validated['phone'] ?? null,
-                'skills'       => $validated['skills'] ?? null,
                 'availability' => $validated['availability'] ?? null,
             ]);
+
+            if (!empty($validated['service_ids'])) {
+                $user->services()->sync($validated['service_ids']);
+            }
         } catch (QueryException $e) {
             // Postgres: 23505 = unique_violation
             if ((int)($e->errorInfo[0] ?? 0) === 23505 || $e->getCode() === '23505') {
@@ -81,6 +75,7 @@ class UserRegistrationController extends Controller
                 'email'        => $user->email,
                 'role'         => $user->role,
                 'created_at'   => $user->created_at,
+                'services'     => $user->services()->get(['services.id', 'type']),
             ]
         ], 201);
     }
