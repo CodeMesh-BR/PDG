@@ -23,4 +23,9 @@ class Service extends Model
     {
         return $this->belongsToMany(User::class, 'service_user')->withTimestamps();
     }
+
+    public function companies()
+    {
+        return $this->belongsToMany(Company::class, 'service_company')->withTimestamps();
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use Illuminate\Database\Seeder;
 use App\Models\Service;
 use App\Models\User;
@@ -33,6 +34,13 @@ class ServiceSeeder extends Seeder
             foreach ($users as $user) {
                 $pick = collect($serviceIds)->shuffle()->take(rand(1, 3))->values()->all();
                 $user->services()->syncWithoutDetaching($pick);
+            }
+        });
+
+        Company::chunk(100, function ($companies) use ($serviceIds) {
+            foreach ($companies as $company) {
+                $pick = collect($serviceIds)->shuffle()->take(rand(1, 3))->values()->all();
+                $company->services()->syncWithoutDetaching($pick);
             }
         });
     }
