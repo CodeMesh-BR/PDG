@@ -159,6 +159,11 @@ Retorna access_token para ser usado como Bearer
 }
 ```
 
+### Listas usuários
+
+**GET** `/api/users/` All users
+**GET** `/api/users/{id}`
+
 ### Atualizar usuário (parcial)
 
 **PATCH** `/api/users/{id}` _(ou PUT)_
@@ -167,6 +172,63 @@ Campos aceitos: `display_name`, `full_name`, `password`
 ### Deletar usuário
 
 **DELETE** `/api/users/{id}`
+
+### Criar serviço
+
+**POST** `/api/services`
+
+```json
+{
+	"type": "Lavagem",
+	"description": "Lavagem premium externa",
+	"value": 125.5
+}
+```
+
+### Listas serviços
+
+**GET** `/api/services/` All services
+**GET** `/api/services/{id}`
+
+### Atualizar serviço (parcial)
+
+**PATCH** `/api/services/{id}` _(ou PUT)_
+Campos aceitos: `type`, `description`, `value`
+
+### Deletar serviço
+
+**DELETE** `/api/services/{id}`
+
+---
+
+### Criar Empresa
+
+**POST** `/api/companies`
+
+```json
+{
+	"name": "Loja Alpha",
+	"display_name": "Alpha Central",
+	"email": "alpha@example.com",
+	"address": "Rua X, 123",
+	"phone": "+351 900 000 000",
+	"service_ids": [1, 3, 5]
+}
+```
+
+### Listas empresa
+
+**GET** `/api/companies/` All companies
+**GET** `/api/companies/{id}`
+
+### Atualizar empresa (parcial)
+
+**PATCH** `/api/companies/{id}` _(ou PUT)_
+Campos aceitos: `name`, `display_name`, `address`, `phone`, `service_ids[]`
+
+### Deletar empresa
+
+**DELETE** `/api/companies/{id}`
 
 ---
 
@@ -177,14 +239,6 @@ Campos aceitos: `display_name`, `full_name`, `password`
 - Database: `pdg_dash`
 - User: `postgres`
 - Password: `postgres`
-
-SQL rápido:
-
-```sql
-SELECT id, display_name, full_name, email, role, created_at
-FROM public.users
-ORDER BY id DESC;
-```
 
 ---
 
@@ -201,12 +255,19 @@ docker compose logs -f db
 # rotas Laravel
 docker compose exec api php artisan route:list
 
-# limpar caches
+# limpar cache
 docker compose exec api php artisan optimize:clear
 docker compose exec api php artisan config:clear
 docker compose exec api php artisan route:clear
-docker compose exec api php artisan route:list
+
+# acessar tinker
 docker compose exec api php artisan tinker
+
+# criação de migrations, controller, model e seeds
+docker compose exec api php artisan make:controller {controler name}
+docker compose exec api php artisan make:migration {migration name}
+docker compose exec api php artisan migrate:fresh --seed
+docker compose exec api php artisan make:model {model name}
 
 # permissões (cache/log)
 docker compose exec api sh -lc 'chown -R www-data:www-data storage bootstrap/cache && chmod -R ug+rw storage bootstrap/cache'
