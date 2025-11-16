@@ -6,6 +6,8 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\UserRegistrationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\PlateOcrController;
+use App\Http\Controllers\ServiceLogController;
 
 // Preflight CORS (opcional)
 Route::options('{any}', fn() => response()->noContent())->where('any', '.*');
@@ -39,4 +41,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/companies/{company}', [CompanyController::class, 'show']);
     Route::match(['put', 'patch'], '/companies/{company}', [CompanyController::class, 'update']);
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
+
+    // Plate OCR
+    Route::post('/plate-ocr', [PlateOcrController::class, 'readPlate']);
+    Route::post('/plate-ocr/debug', [PlateOcrController::class, 'debug']);
+    Route::post('/plate-ocr/ping', [PlateOcrController::class, 'ping']);
+
+    // Services Logs
+    Route::post('/service-logs', [ServiceLogController::class, 'store']);
+    Route::get('/service-logs',  [ServiceLogController::class, 'index']);
+    Route::delete('/service-logs/{serviceLog}',  [ServiceLogController::class, 'destroy']);
 });

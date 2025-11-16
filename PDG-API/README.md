@@ -232,6 +232,37 @@ Campos aceitos: `name`, `display_name`, `address`, `phone`, `service_ids[]`
 
 ---
 
+### Lançar serviço realizado
+
+**POST** `/api/service-logs`
+
+```json
+{
+	"company_id": 10,
+	"service_id": 1,
+	"car_plate": "ABC1234",
+	"date": "2025-11-14",
+	"quantity": 1,
+	"notes": "Observação se necessário"
+}
+```
+
+### Caso já exista o lançamento e mesmo assim será lançado novamente, deve-se utilizar o force
+
+```json
+{
+	"company_id": 10,
+	"service_id": 1,
+	"car_plate": "ABC1234",
+	"date": "2025-11-14",
+	"quantity": 1,
+	"notes": "Lançado novamente pois o gerente solicitou para fazer de novo",
+	"force": true //para forçar repetidos
+}
+```
+
+---
+
 ## DBeaver (opcional)
 
 - Host: `localhost`
@@ -257,6 +288,7 @@ docker compose exec api php artisan route:list
 
 # limpar cache
 docker compose exec api php artisan optimize:clear
+docker compose exec api php artisan cache:clear
 docker compose exec api php artisan config:clear
 docker compose exec api php artisan route:clear
 
@@ -274,6 +306,12 @@ docker compose exec api sh -lc 'chown -R www-data:www-data storage bootstrap/cac
 
 # reset TOTAL (⚠️ apaga DB)
 docker compose down -v && docker compose up -d --build
+
+# entrar no bash do docker
+docker exec -it pdg-api bash
+
+# regenerate autoload
+docker compose exec api composer dump-autoload --optimize
 ```
 
 ---
@@ -286,3 +324,19 @@ docker compose down -v && docker compose up -d --build
 - **FATAL: password authentication failed**: volume do Postgres com credenciais antigas → `docker compose down -v && up -d --build`.
 - **Could not open input file: artisan**: volume errado; monte `./src/api/laravel:/var/www/html`.
 - **CORS**: ajuste `config/cors.php` (`allowed_origins`) e limpe configs.
+
+# PADRÃO ENV
+
+DB_CONNECTION=pgsql
+DB_HOST=db
+DB_PORT=5432
+DB_DATABASE=pdg_dash
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+
+# PADRÃO DOCKER COMPOSE YML
+
+environment:
+POSTGRES_DB: pdg_dash
+POSTGRES_USER: postgres
+POSTGRES_PASSWORD: postgres
