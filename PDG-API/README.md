@@ -146,7 +146,7 @@ Retorna access_token para ser usado como Bearer
 
 ### Criar usuário
 
-**POST** `/api/users`
+**POST** `/api/users` - form-data
 
 ```form-data
 ----------------------------------------
@@ -172,7 +172,7 @@ work_certificate_pdf      | File  | certidao.pdf
 
 ### Atualizar usuário (parcial)
 
-**PATCH** `/api/users/{id}` _(ou PUT)_
+**PATCH** `/api/users/{id}` _(ou PUT)_ - form-data
 
 ```form-data
 ----------------------------------------
