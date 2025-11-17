@@ -29,9 +29,4 @@ class User extends Authenticatable
         'availability' => 'array',
         'email_verified_at' => 'datetime',
     ];
-
-    public function services()
-    {
-        return $this->belongsToMany(Service::class, 'service_user')->withTimestamps();
-    }
 }

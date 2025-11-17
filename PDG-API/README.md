@@ -148,15 +148,21 @@ Retorna access_token para ser usado como Bearer
 
 **POST** `/api/users`
 
-```json
-{
-	"full_name": "John Doe",
-	"address": "Rua X, 123",
-	"phone": "+351 912 000 000",
-	"email": "john@example.com",
-	"password": "abc12345",
-	"role": "user"
-}
+```form-data
+----------------------------------------
+Key                       | Type  | Value
+----------------------------------------
+display_name              | Text  | Nikolas
+full_name                 | Text  | Nikolas Guimarães
+email                     | Text  | nikolas@example.com
+password                  | Text  | MinhaSenha123
+role                      | Text  | worker
+phone                     | Text  | +351900000000
+address                   | Text  | Rua X
+availability[0]           | Text  | mon
+availability[1]           | Text  | tue
+contract_pdf              | File  | contrato.pdf
+work_certificate_pdf      | File  | certidao.pdf
 ```
 
 ### Listas usuários
@@ -167,7 +173,23 @@ Retorna access_token para ser usado como Bearer
 ### Atualizar usuário (parcial)
 
 **PATCH** `/api/users/{id}` _(ou PUT)_
-Campos aceitos: `display_name`, `full_name`, `password`
+
+```form-data
+----------------------------------------
+Key                       | Type  | Value
+----------------------------------------
+display_name              | Text  | Nikolas
+full_name                 | Text  | Nikolas Guimarães
+email                     | Text  | nikolas@example.com
+password                  | Text  | MinhaSenha123
+role                      | Text  | worker
+phone                     | Text  | +351900000000
+address                   | Text  | Rua X
+availability[0]           | Text  | mon
+availability[1]           | Text  | tue
+contract_pdf              | File  | contrato.pdf
+work_certificate_pdf      | File  | certidao.pdf
+```
 
 ### Deletar usuário
 

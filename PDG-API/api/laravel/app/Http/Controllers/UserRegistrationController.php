@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class UserRegistrationController extends Controller
@@ -27,17 +28,28 @@ class UserRegistrationController extends Controller
             'email'        => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')],
             'password'     => ['required', 'string', 'min:8', 'max:16', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,16}$/'],
             'role'         => ['required', 'string', 'max:50'],
-
-            'service_ids'   => ['sometimes', 'array'],
-            'service_ids.*' => ['integer', 'exists:services,id'],
-
             'availability'   => ['sometimes', 'array'],
             'availability.*' => ['string', Rule::in(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])],
+            'contract_pdf_path'         => ['sometimes', 'string', 'max:2048'],
+            'work_certificate_pdf_path' => ['sometimes', 'string', 'max:2048'],
+
+            'contract_pdf'         => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
+            'work_certificate_pdf' => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
         ], [
             'phone.regex'    => 'Phone must contain only digits, space, +, -, ( ) and be 7–20 characters long.',
             'password.regex' => 'Password must be 8–16 characters and contain letters and numbers.',
             'email.unique'   => 'Email already exists.',
         ]);
+
+        if ($request->hasFile('contract_pdf')) {
+            $path = $request->file('contract_pdf')->store('contracts', 'public');
+            $validated['contract_pdf_path'] = Storage::disk('public')->url($path);
+        }
+
+        if ($request->hasFile('work_certificate_pdf')) {
+            $path = $request->file('work_certificate_pdf')->store('certificates', 'public');
+            $validated['work_certificate_pdf_path'] = Storage::disk('public')->url($path);
+        }
 
         if (User::where('email', $validated['email'])->exists()) {
             return response()->json(['message' => 'Email already exists.'], 409);
@@ -45,21 +57,18 @@ class UserRegistrationController extends Controller
 
         try {
             $user = User::create([
-                'display_name' => $validated['display_name'],
-                'full_name'    => $validated['full_name'],
-                'email'        => $validated['email'],
-                'password'     => Hash::make($validated['password']),
-                'role'         => $validated['role'],
-                'address'      => $validated['address'] ?? null,
-                'phone'        => $validated['phone'] ?? null,
-                'availability' => $validated['availability'] ?? null,
+                'display_name'              => $validated['display_name'],
+                'full_name'                 => $validated['full_name'],
+                'email'                     => $validated['email'],
+                'password'                  => Hash::make($validated['password']),
+                'role'                      => $validated['role'],
+                'address'                   => $validated['address'] ?? null,
+                'phone'                     => $validated['phone'] ?? null,
+                'availability'              => $validated['availability'] ?? null,
+                'contract_pdf_path'         => $validated['contract_pdf_path'] ?? null,
+                'work_certificate_pdf_path' => $validated['work_certificate_pdf_path'] ?? null,
             ]);
-
-            if (!empty($validated['service_ids'])) {
-                $user->services()->sync($validated['service_ids']);
-            }
         } catch (QueryException $e) {
-            // Postgres: 23505 = unique_violation
             if ((int)($e->errorInfo[0] ?? 0) === 23505 || $e->getCode() === '23505') {
                 return response()->json(['message' => 'Email already exists.'], 409);
             }
@@ -69,13 +78,14 @@ class UserRegistrationController extends Controller
         return response()->json([
             'message' => 'User created successfully',
             'data' => [
-                'id'           => $user->id,
-                'display_name' => $user->display_name,
-                'full_name'    => $user->full_name,
-                'email'        => $user->email,
-                'role'         => $user->role,
-                'created_at'   => $user->created_at,
-                'services'     => $user->services()->get(['services.id', 'type']),
+                'id'                        => $user->id,
+                'display_name'              => $user->display_name,
+                'full_name'                 => $user->full_name,
+                'email'                     => $user->email,
+                'role'                      => $user->role,
+                'contract_pdf_path'         => $user->contract_pdf_path,
+                'work_certificate_pdf_path' => $user->work_certificate_pdf_path,
+                'created_at'                => $user->created_at,
             ]
         ], 201);
     }

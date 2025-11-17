@@ -18,10 +18,6 @@ class UserController extends Controller
             ->select('id', 'display_name', 'full_name', 'email', 'role', 'created_at')
             ->orderByDesc('id');
 
-        if ($request->boolean('include_services')) {
-            $query->with(['services:id,type']);
-        }
-
         return response()->json($query->paginate(15));
     }
 
@@ -43,9 +39,6 @@ class UserController extends Controller
 
             'contract_pdf'         => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
             'work_certificate_pdf' => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
-
-            'service_ids'   => ['sometimes', 'array'],
-            'service_ids.*' => ['integer', 'exists:services,id'],
         ], [
             'password.regex' => 'Password must be 8-16 characters long, with letters and numbers.',
         ]);
@@ -75,17 +68,7 @@ class UserController extends Controller
             $validated['password'] = Hash::make($validated['password']);
         }
 
-        $toFill = collect($validated)->except('service_ids')->all();
-
-        DB::transaction(function () use ($user, $toFill, $validated) {
-            $user->fill($toFill)->save();
-
-            if (array_key_exists('service_ids', $validated)) {
-                $user->services()->sync($validated['service_ids'] ?? []);
-            }
-        });
-
-        $user->loadMissing('services:id,type,value');
+        $user->fill($validated)->save();
 
         return response()->json([
             'message' => 'User updated successfully.',
@@ -98,7 +81,6 @@ class UserController extends Controller
                 'availability'              => $user->availability,
                 'contract_pdf_path'         => $user->contract_pdf_path,
                 'work_certificate_pdf_path' => $user->work_certificate_pdf_path,
-                'services'                  => $user->services->map->only(['id', 'type']),
                 'updated_at'                => $user->updated_at,
             ],
         ]);
@@ -121,7 +103,6 @@ class UserController extends Controller
                 'availability'              => $user->availability,
                 'contract_pdf_path'         => $user->contract_pdf_path,
                 'work_certificate_pdf_path' => $user->work_certificate_pdf_path,
-                'services'                  => $user->services->map->only(['id', 'type']),
                 'updated_at'                => $user->updated_at,
                 'created_at'                => $user->created_at,
             ],
