@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useServices } from '../services/useService';
 
 export interface Company {
   id: number;
@@ -17,10 +18,14 @@ export interface Company {
 }
 
 export function useCompanies() {
+  const { services, loading: loadingServices } = useServices();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedServices, setSelectedServices] = useState<number[]>([]);
+
+  
 
   const fetchCompanies = async () => {
     try {
@@ -47,6 +52,12 @@ export function useCompanies() {
       setLoading(false);
     }
   };
+
+  const handleSelectServices = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const values = Array.from(e.target.selectedOptions, option => Number(option.value));
+  setSelectedServices(values);
+};
+
 
   useEffect(() => {
     fetchCompanies();

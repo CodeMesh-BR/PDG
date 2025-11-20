@@ -8,9 +8,45 @@ import { MenuIcon } from "./icons";
 import { Notification } from "./notification";
 import { ThemeToggleSwitch } from "./theme-toggle";
 import { UserInfo } from "./user-info";
+import { usePathname } from "next/navigation";
 
 export function Header() {
   const { toggleSidebar, isMobile } = useSidebarContext();
+  const pathname = usePathname();
+  const pageTitles: Record<string, string> = {
+    "/": "Dashboard",
+    "/companies": "Companies",
+    "/companies/[id]/edit": "Companies",
+    "/employees": "Employees",
+    "/employees/[id]/edit": "Employees",
+    "/services": "Services",
+    "/services/[id]/edit": "Services",
+    "/profile": "Profile",
+    "/settings": "Settings",
+  };
+
+  const resolvePageTitle = (pathname: string) => {
+    // 1. Se a rota existir exatamente, retorna
+    if (pageTitles[pathname]) return pageTitles[pathname];
+
+    // 2. Trata rotas dinâmicas (edit)
+    if (pathname.match(/^\/companies\/[^/]+\/edit$/)) {
+      return pageTitles["/companies/[id]/edit"];
+    }
+
+    if (pathname.match(/^\/employees\/[^/]+\/edit$/)) {
+      return pageTitles["/employees/[id]/edit"];
+    }
+
+    if (pathname.match(/^\/services\/[^/]+\/edit$/)) {
+      return pageTitles["/services/[id]/edit"];
+    }
+
+    // fallback
+    return "Dashboard";
+  };
+
+  const title = resolvePageTitle(pathname);
 
   return (
     <header className="top-0 z-30 flex items-center justify-between border-b border-stroke bg-white px-4 py-5 shadow-1 dark:border-stroke-dark dark:bg-gray-dark md:px-5 2xl:px-10">
@@ -36,7 +72,7 @@ export function Header() {
 
       <div className="max-xl:hidden">
         <h1 className="mb-0.5 text-heading-5 font-bold text-dark dark:text-white">
-          PDG
+          {title}
         </h1>
       </div>
 

@@ -22,7 +22,6 @@ export function UserInfo() {
     email: "johnson@nextadmin.com",
   };
 
-  // 🔒 Função de logout
   const handleLogout = async () => {
     try {
       setLoading(true);
@@ -33,7 +32,6 @@ export function UserInfo() {
         return;
       }
 
-      // Chama o endpoint de logout
       await fetch("http://localhost:8080/api/auth/logout", {
         method: "POST",
         headers: {
@@ -42,10 +40,8 @@ export function UserInfo() {
         },
       });
 
-      // Remove token local
       localStorage.removeItem("token");
 
-      // Fecha o menu e redireciona
       setIsOpen(false);
       router.replace("/auth/sign-in");
     } catch (err) {
@@ -93,14 +89,12 @@ export function UserInfo() {
 
         <div className="p-2 text-base text-[#4B5563] dark:text-dark-6">
           <Link
-            href={"/pages/settings"}
+            href={"/profile"}
             onClick={() => setIsOpen(false)}
             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] hover:bg-gray-2 hover:text-dark dark:hover:bg-dark-3 dark:hover:text-white"
           >
             <SettingsIcon />
-            <span className="mr-auto text-base font-medium">
-              Account Settings
-            </span>
+            <span className="mr-auto text-base font-medium">Profile</span>
           </Link>
         </div>
 
@@ -110,7 +104,7 @@ export function UserInfo() {
           <button
             className={cn(
               "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] hover:bg-gray-2 hover:text-dark dark:hover:bg-dark-3 dark:hover:text-white",
-              loading && "opacity-70 cursor-not-allowed"
+              loading && "cursor-not-allowed opacity-70",
             )}
             onClick={handleLogout}
             disabled={loading}

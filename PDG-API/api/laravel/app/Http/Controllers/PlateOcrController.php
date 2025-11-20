@@ -20,7 +20,8 @@ class PlateOcrController extends Controller
         try {
             $http->validate(['image' => 'required|image|max:10240']);
 
-            $imageContent = $http->file('image')->get();
+            $image = $http->file('image');
+$imageContent = file_get_contents($image->getRealPath());
 
             $client = new ImageAnnotatorClient([
                 'transport' => 'rest',

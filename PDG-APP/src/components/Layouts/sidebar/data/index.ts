@@ -28,6 +28,12 @@ export const NAV_DATA = [
         icon: Icons.Calendar,
         items: [],
       },
+      {
+        title: "Service Start",
+        url: "/serviceLog",
+        icon: Icons.Alphabet,
+        items: [],
+      },
     ],
   },
 ];
