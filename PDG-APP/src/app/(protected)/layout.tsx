@@ -38,7 +38,6 @@ export default function ProtectedLayout({
         const role = data?.data?.role || null;
         setUserRole(role);
 
-        // 🔑 Controle de acesso por role
         if (!canAccessPage(pathname, role)) {
           router.replace("/unauthorized");
           return;
@@ -48,7 +47,7 @@ export default function ProtectedLayout({
       } catch (err) {
         console.error("Auth check failed:", err);
         localStorage.removeItem("token");
-        router.replace("/login");
+        router.replace("/auth/sign-in");
       }
     };
 

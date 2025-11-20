@@ -11,10 +11,9 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
 
-  // páginas sem header/sidebar
   const isAuthPage =
     pathname?.startsWith("/auth") ||
-    pathname === "/login" ||
+    pathname === "/auth/sign-in" ||
     pathname === "/unauthorized";
 
   if (isAuthPage) {

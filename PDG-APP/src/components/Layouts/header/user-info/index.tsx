@@ -22,7 +22,6 @@ export function UserInfo() {
     email: "johnson@nextadmin.com",
   };
 
-  // 🔒 Função de logout
   const handleLogout = async () => {
     try {
       setLoading(true);
@@ -33,7 +32,6 @@ export function UserInfo() {
         return;
       }
 
-      // Chama o endpoint de logout
       await fetch("http://localhost:8080/api/auth/logout", {
         method: "POST",
         headers: {
@@ -42,10 +40,8 @@ export function UserInfo() {
         },
       });
 
-      // Remove token local
       localStorage.removeItem("token");
 
-      // Fecha o menu e redireciona
       setIsOpen(false);
       router.replace("/auth/sign-in");
     } catch (err) {

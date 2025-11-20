@@ -1,8 +1,10 @@
-'use client';
+"use client";
 
-import { Company } from '../useCompanies';
-import { Button } from '@/components/ui-elements/button';
-import { useState } from 'react';
+import { Company } from "../useCompanies";
+import { Button } from "@/components/ui-elements/button";
+import { useRouter } from "next/navigation";
+
+import { useState } from "react";
 
 interface Props {
   companies: Company[];
@@ -11,24 +13,26 @@ interface Props {
 
 export default function CompanyList({ companies, onRefresh }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const router = useRouter();
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this company?')) return;
+    if (!confirm("Are you sure you want to delete this company?")) return;
 
     try {
       setDeletingId(id);
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Unauthorized');
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Unauthorized");
 
       const res = await fetch(`http://localhost:8080/api/companies/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
+          Accept: "application/json",
         },
       });
 
-      if (!res.ok && res.status !== 204) throw new Error('Failed to delete company');
+      if (!res.ok && res.status !== 204)
+        throw new Error("Failed to delete company");
       onRefresh();
     } catch (err: any) {
       alert(err.message);
@@ -42,25 +46,47 @@ export default function CompanyList({ companies, onRefresh }: Props) {
       {companies.map((c) => (
         <div
           key={c.id}
-          className="border rounded-lg p-4 shadow-sm bg-gray-50 flex justify-between items-center"
+          className="flex items-start justify-between rounded-lg border bg-gray-50 p-4 shadow-sm"
         >
-          <div>
-            <h3 className="font-semibold">{c.display_name || c.name}</h3>
-            <p className="text-sm text-gray-500">{c.email}</p>
-            <p className="text-sm text-gray-500">{c.phone}</p>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold">
+              {c.display_name || c.name}
+            </h3>
+
+            <p className="text-sm text-gray-600">{c.email}</p>
+            <p className="text-sm text-gray-600">{c.phone}</p>
             <p className="text-sm text-gray-400">{c.address}</p>
+
+            {/* SERVIÇOS */}
+            {c.services && c.services.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {c.services.map((s) => (
+                  <span
+                    key={s.id}
+                    className="flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1 text-xs text-white"
+                  >
+                    {s.type}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-xs italic text-gray-400">
+                No services linked
+              </p>
+            )}
           </div>
 
-          <div className="flex gap-2">
-            {/* <Button
-              label="Edit"
-              onClick={() => alert('Edit not implemented yet')}
-            /> */}
+          <div className="ml-4 flex gap-2">
             <Button
-              label={deletingId === c.id ? 'Deleting...' : 'Delete'}
+              label={deletingId === c.id ? "Deleting..." : "Delete"}
               onClick={() => handleDelete(c.id)}
               disabled={deletingId === c.id}
               variant="dark"
+            />
+            <Button
+              label="Edit"
+              onClick={() => router.push(`/companies/${c.id}/edit`)}
+              variant="primary"
             />
           </div>
         </div>

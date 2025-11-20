@@ -7,6 +7,8 @@ export interface Employee {
   email: string;
   role: string;
   created_at: string;
+  availability: string[];
+  contract_pdf_path: string;
 }
 
 export function useEmployees() {
@@ -45,6 +47,5 @@ export function useEmployees() {
     fetchUsers();
   }, []);
   
-  console.log("🚀 ~ useEmployees ~ users:", users)
   return { users, total, loading, error, refresh: fetchUsers };
 }

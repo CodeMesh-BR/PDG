@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui-elements/button';
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui-elements/button";
 
 interface Company {
   id: number;
@@ -15,31 +15,28 @@ interface Props {
 
 export default function ServiceForm({ onSuccess }: Props) {
   const [form, setForm] = useState({
-    type: '',
-    description: '',
-    value: '',
-    company_id: '',
+    type: "",
+    description: "",
+    value: "",
+    company_id: "",
   });
-  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  // Busca empresas
   const fetchCompanies = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Unauthorized');
-      const res = await fetch('http://localhost:8080/api/companies', {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Unauthorized");
+      const res = await fetch("http://localhost:8080/api/companies", {
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
+          Accept: "application/json",
         },
       });
       const data = await res.json();
-      setCompanies(data.data || []);
     } catch (err) {
-      console.error('Failed to fetch companies:', err);
+      console.error("Failed to fetch companies:", err);
     }
   };
 
@@ -48,37 +45,39 @@ export default function ServiceForm({ onSuccess }: Props) {
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Unauthorized');
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch('http://localhost:8080/api/services', {
-        method: 'POST',
+      const res = await fetch("http://localhost:8080/api/services", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(form),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to create service');
+      if (!res.ok) throw new Error(data.message || "Failed to create service");
 
-      setForm({ type: '', description: '', value: '', company_id: '' });
-      setSuccess('Service created successfully!');
-      if (typeof onSuccess === 'function') onSuccess();
+      setForm({ type: "", description: "", value: "", company_id: "" });
+      setSuccess("Service created successfully!");
+      if (typeof onSuccess === "function") onSuccess();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -89,17 +88,17 @@ export default function ServiceForm({ onSuccess }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white p-6 rounded-lg shadow-md space-y-4"
+      className="space-y-4 rounded-lg bg-white p-6 shadow-md"
     >
       <h2 className="text-lg font-semibold">Add New Service</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <input
           name="type"
           placeholder="Type *"
           value={form.type}
           onChange={handleChange}
-          className="border p-2 rounded"
+          className="rounded border p-2"
           required
         />
         <input
@@ -109,7 +108,7 @@ export default function ServiceForm({ onSuccess }: Props) {
           placeholder="Value *"
           value={form.value}
           onChange={handleChange}
-          className="border p-2 rounded"
+          className="rounded border p-2"
           required
         />
         <textarea
@@ -117,38 +116,17 @@ export default function ServiceForm({ onSuccess }: Props) {
           placeholder="Description *"
           value={form.description}
           onChange={handleChange}
-          className="border p-2 rounded col-span-2"
+          className="col-span-2 rounded border p-2"
           rows={3}
           required
         />
-
-        <select
-          name="company_id"
-          value={form.company_id}
-          onChange={handleChange}
-          className="border p-2 rounded col-span-2 bg-white"
-          required
-        >
-          <option value="" disabled>
-            Select company
-          </option>
-          {companies.length === 0 ? (
-            <option disabled>No companies available</option>
-          ) : (
-            companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.display_name || c.name}
-              </option>
-            ))
-          )}
-        </select>
       </div>
 
       {error && <p className="text-red-500">{error}</p>}
       {success && <p className="text-green-500">{success}</p>}
 
       <Button
-        label={loading ? 'Saving...' : 'Save Service'}
+        label={loading ? "Saving..." : "Save Service"}
         type="submit"
         disabled={loading}
       />
