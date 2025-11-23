@@ -86,41 +86,40 @@ class CompanyController extends Controller
     }
 
     // PUT/PATCH /api/companies/{id}
-   public function update(Request $request, $id)
-{
-    $company = Company::findOrFail($id);
+    public function update(Request $request, $id)
+    {
+        $company = Company::findOrFail($id);
 
-    $validated = $request->validate([
-        'name'         => ['sometimes', 'string', 'min:2', 'max:150'],
-        'display_name' => ['sometimes', 'string', 'max:50'],
-        'email'        => ['sometimes', 'email:rfc', 'max:255', Rule::unique('companies', 'email')->ignore($company->id)],
-        'address'      => ['sometimes', 'string', 'max:255'],
-        'phone'        => ['sometimes', 'string', 'max:20', 'regex:/^\+?[0-9\s\-()]{7,20}$/'],
+        $validated = $request->validate([
+            'name'         => ['sometimes', 'string', 'min:2', 'max:150'],
+            'display_name' => ['sometimes', 'string', 'max:50'],
+            'email'        => ['sometimes', 'email:rfc', 'max:255', Rule::unique('companies', 'email')->ignore($company->id)],
+            'address'      => ['sometimes', 'string', 'max:255'],
+            'phone'        => ['sometimes', 'string', 'max:20', 'regex:/^\+?[0-9\s\-()]{7,20}$/'],
 
-        // ← mesma regra do store()
-        'service_ids'   => ['sometimes', 'array'],
-        'service_ids.*' => ['integer', 'exists:services,id'],
-    ]);
+            'service_ids'   => ['sometimes', 'array'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
+        ]);
 
-    if (array_key_exists('email', $validated)) {
-        $validated['email'] = strtolower($validated['email']);
+        if (array_key_exists('email', $validated)) {
+            $validated['email'] = strtolower($validated['email']);
+        }
+
+        $company->fill($validated)->save();
+
+        // ← sincroniza serviços
+        if ($request->has('service_ids')) {
+            $company->services()->sync($validated['service_ids']);
+        }
+
+        // retornar já com os serviços atualizados
+        $company->load('services:id,type,description,value');
+
+        return response()->json([
+            'message' => 'Company updated successfully',
+            'data' => $company
+        ]);
     }
-
-    $company->fill($validated)->save();
-
-    // ← sincroniza serviços
-    if ($request->has('service_ids')) {
-        $company->services()->sync($validated['service_ids']);
-    }
-
-    // retornar já com os serviços atualizados
-    $company->load('services:id,type,description,value');
-
-    return response()->json([
-        'message' => 'Company updated successfully',
-        'data' => $company
-    ]);
-}
 
     // DELETE /api/companies/{id}
     public function destroy($id)

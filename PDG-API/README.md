@@ -285,6 +285,36 @@ Campos aceitos: `name`, `display_name`, `address`, `phone`, `service_ids[]`
 
 ---
 
+### Relatórios
+
+#### Serviços
+
+**GET** `/api/reports/services`
+Exemplo: /api/reports/services?user_id=3&date_from=2025-10-20&date_to=2025-10-21&page=1&per_page=50
+
+Filtros aceitos:
+date_from (aaaa-mm-dd)
+date_to (aaaa-mm-dd)
+user_id (integer)
+company_id (integer)
+page (integer)
+per_page (integer)
+
+#### Serviços (somatória por prestador e compania)
+
+**GET** `/api/reports/services/summary`
+Exemplo: /api/reports/services/summary?user_id=3&date_from=2025-10-20&date_to=2025-10-21&page=1&per_page=50
+
+Filtros aceitos:
+date_from (aaaa-mm-dd)
+date_to (aaaa-mm-dd)
+user_id (integer)
+company_id (integer)
+page (integer)
+per_page (integer)
+
+---
+
 ## DBeaver (opcional)
 
 - Host: `localhost`

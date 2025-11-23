@@ -8,6 +8,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\PlateOcrController;
 use App\Http\Controllers\ServiceLogController;
+use App\Http\Controllers\ReportController;
 
 // Preflight CORS (opcional)
 Route::options('{any}', fn() => response()->noContent())->where('any', '.*');
@@ -51,4 +52,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/service-logs', [ServiceLogController::class, 'store']);
     Route::get('/service-logs',  [ServiceLogController::class, 'index']);
     Route::delete('/service-logs/{serviceLog}',  [ServiceLogController::class, 'destroy']);
+
+    // Reports
+    Route::get('/reports/services', [ReportController::class, 'services']);
+    Route::get('/reports/services/summary', [ReportController::class, 'servicesSummary']);
 });
