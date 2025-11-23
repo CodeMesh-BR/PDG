@@ -1,53 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
-
-interface Company {
-  id: number;
-  name: string;
-  display_name?: string;
-}
+import { FormAlert } from "@/components/FormAlerts/FormAlert";
 
 interface Props {
   onSuccess?: () => void;
 }
 
-export default function ServiceForm({ onSuccess }: Props) {
+export default function ServiceCatalogForm({ onSuccess }: Props) {
   const [form, setForm] = useState({
     type: "",
     description: "",
     value: "",
-    company_id: "",
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const fetchCompanies = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Unauthorized");
-      const res = await fetch("http://localhost:8080/api/companies", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      const data = await res.json();
-    } catch (err) {
-      console.error("Failed to fetch companies:", err);
+  const validate = () => {
+    if (form.type.trim().length < 2) {
+      return "Type must be at least 2 characters.";
     }
+
+    if (form.description.trim().length < 3) {
+      return "Description must be at least 3 characters.";
+    }
+
+    const numericValue = Number(form.value);
+    if (!numericValue || numericValue <= 0) {
+      return "Value must be a number greater than zero.";
+    }
+
+    return null;
   };
 
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
-
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -56,6 +46,12 @@ export default function ServiceForm({ onSuccess }: Props) {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -75,9 +71,10 @@ export default function ServiceForm({ onSuccess }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create service");
 
-      setForm({ type: "", description: "", value: "", company_id: "" });
+      setForm({ type: "", description: "", value: "" });
       setSuccess("Service created successfully!");
-      if (typeof onSuccess === "function") onSuccess();
+
+      if (onSuccess) onSuccess();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -88,9 +85,12 @@ export default function ServiceForm({ onSuccess }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-lg bg-white p-6 shadow-md"
+      className="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-gray-900"
     >
       <h2 className="text-lg font-semibold">Add New Service</h2>
+
+      {error && <FormAlert type="error" message={error} />}
+      {success && <FormAlert type="success" message={success} />}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <input
@@ -98,9 +98,10 @@ export default function ServiceForm({ onSuccess }: Props) {
           placeholder="Type *"
           value={form.type}
           onChange={handleChange}
-          className="rounded border p-2"
+          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
           required
         />
+
         <input
           name="value"
           type="number"
@@ -108,22 +109,20 @@ export default function ServiceForm({ onSuccess }: Props) {
           placeholder="Value *"
           value={form.value}
           onChange={handleChange}
-          className="rounded border p-2"
+          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
           required
         />
+
         <textarea
           name="description"
           placeholder="Description *"
           value={form.description}
           onChange={handleChange}
-          className="col-span-2 rounded border p-2"
           rows={3}
+          className="col-span-2 rounded border p-2 dark:text-white dark:placeholder:text-white"
           required
         />
       </div>
-
-      {error && <p className="text-red-500">{error}</p>}
-      {success && <p className="text-green-500">{success}</p>}
 
       <Button
         label={loading ? "Saving..." : "Save Service"}

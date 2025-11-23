@@ -11,9 +11,10 @@ export interface Employee {
   role: string;
   address?: string;
   phone?: string;
+  availability?: string[];
+  contract_pdf_path?: string;
   password?: string;
   password_confirmation?: string;
-  created_at?: string;
 }
 
 export function useEditEmployee() {
@@ -21,18 +22,31 @@ export function useEditEmployee() {
   const router = useRouter();
 
   const [user, setUser] = useState<Employee | null>(null);
+  const [availability, setAvailability] = useState<string[]>([]);
+  const [contractPdf, setContractPdf] = useState<File | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string[]>
-  >({});
 
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const weekDays = [
+    { key: "mon", label: "Monday" },
+    { key: "tue", label: "Tuesday" },
+    { key: "wed", label: "Wednesday" },
+    { key: "thu", label: "Thursday" },
+    { key: "fri", label: "Friday" },
+    { key: "sat", label: "Saturday" },
+    { key: "sun", label: "Sunday" },
+  ];
+
+  /** LOAD USER */
   useEffect(() => {
     const fetchUser = async () => {
       try {
         setLoading(true);
-        setError("");
+
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Unauthorized");
 
@@ -44,8 +58,10 @@ export function useEditEmployee() {
         });
 
         if (!res.ok) throw new Error("Failed to load user");
+
         const data = await res.json();
         setUser(data.data);
+        setAvailability(data.data.availability || []);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -56,24 +72,29 @@ export function useEditEmployee() {
     fetchUser();
   }, [id]);
 
-  const handleChange = (field: keyof Employee, value: string) => {
+  /** FORM CHANGE HANDLER */
+  const handleChange = (field: keyof Employee, value: any) => {
     setUser((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
+  const toggleDay = (day: string) => {
+    setAvailability((prev) =>
+      prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day]
+    );
+  };
+
+  const handleContractUpload = (file: File | null) => {
+    setContractPdf(file);
+  };
+
+  /** SAVE */
   const handleSave = async () => {
     if (!user) return;
-    setValidationErrors({});
+
     setError("");
-
-    if (user.phone && !user.phone.startsWith("+61")) {
-      setError("Phone number must start with +61 (Australia).");
-      return;
-    }
-
-    if (user.password && user.password !== user.password_confirmation) {
-      setError("Passwords do not match.");
-      return;
-    }
+    setSuccess("");
 
     try {
       setSaving(true);
@@ -81,26 +102,68 @@ export function useEditEmployee() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const payload = Object.fromEntries(
-        Object.entries(user).filter(([_, v]) => v !== undefined && v !== null),
-      );
+
+      const payload = {
+        display_name: user.display_name,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        address: user.address,
+        availability,
+        password: user.password,
+        password_confirmation: user.password_confirmation,
+      };
+
+      const formData = new FormData();
+      formData.append("_method", "PATCH");
+Object.entries(payload).forEach(([key, value]) => {
+  if (value !== undefined && value !== null) {
+    if (Array.isArray(value)) {
+      value.forEach((v) => formData.append(`${key}[]`, v));
+    } else {
+      formData.append(key, value as any);
+    }
+  }
+});
 
       const res = await fetch(`http://localhost:8080/api/users/${id}`, {
-        method: "PUT",
+        method: "POST", 
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
-      if (res.status === 422) {
-        const data = await res.json();
-        setValidationErrors(data.errors || {});
-        throw new Error("Validation failed.");
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.message || "Failed to update employee");
       }
 
-      if (!res.ok) throw new Error(`Failed to update user (${res.status})`);
+
+      if (contractPdf) {
+        const fd = new FormData();
+        fd.append("_method", "PATCH");
+        fd.append("contract_pdf", contractPdf);
+
+        const uploadRes = await fetch(
+          `http://localhost:8080/api/users/${id}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: fd,
+          }
+        );
+
+        if (!uploadRes.ok) {
+          const dd = await uploadRes.json().catch(() => ({}));
+          throw new Error(dd.message || "Failed to upload contract");
+        }
+      }
+
+      setSuccess("Employee updated successfully!");
 
       router.push("/employees");
     } catch (err: any) {
@@ -110,34 +173,19 @@ export function useEditEmployee() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Unauthorized");
-
-      const res = await fetch(`http://localhost:8080/api/users/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) throw new Error("Failed to delete user");
-
-      router.push("/employees");
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
   return {
     user,
+    availability,
+    weekDays,
+    contractPdf,
     loading,
     saving,
     error,
-    validationErrors,
+    success,
+
     handleChange,
+    toggleDay,
+    handleContractUpload,
     handleSave,
-    handleDelete,
   };
 }

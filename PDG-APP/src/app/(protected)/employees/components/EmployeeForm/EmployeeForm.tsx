@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
+import { FormAlert } from "@/components/FormAlerts/FormAlert";
 
 interface Props {
   onSuccess?: () => void;
@@ -18,6 +19,19 @@ export default function EmployeeForm({ onSuccess }: Props) {
     role: "",
   });
 
+  const [availability, setAvailability] = useState<string[]>([]);
+  const [contractPdf, setContractPdf] = useState<File | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const auPhoneRegex =
+    /^(0[23478]\d{8}|04\d{8}|\+612\d{8}|\+613\d{8}|\+617\d{8}|\+618\d{8}|\+614\d{8})$/;
+
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,16}$/;
+
   const weekDays = [
     { key: "mon", label: "Monday" },
     { key: "tue", label: "Tuesday" },
@@ -27,12 +41,6 @@ export default function EmployeeForm({ onSuccess }: Props) {
     { key: "sat", label: "Saturday" },
     { key: "sun", label: "Sunday" },
   ];
-
-  const [availability, setAvailability] = useState<string[]>([]);
-  const [contractPdf, setContractPdf] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -47,26 +55,53 @@ export default function EmployeeForm({ onSuccess }: Props) {
   };
 
   const handleContractUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       setContractPdf(e.target.files[0]);
     }
+  };
+
+  const validateForm = () => {
+    if (!form.display_name.trim()) return "Display name is required.";
+    if (!form.full_name.trim()) return "Full name is required.";
+    if (!form.email.trim() || !emailRegex.test(form.email))
+      return "Please enter a valid email address.";
+    if (!form.role) return "Role is required.";
+
+    if (!passwordRegex.test(form.password)) {
+      return "Password must be 8–16 characters and include letters and numbers.";
+    }
+
+    if (form.phone.trim()) {
+      const normalizedPhone = form.phone.replace(/[^0-9+]/g, "");
+
+      if (!auPhoneRegex.test(normalizedPhone)) {
+        return "Invalid Australian phone format. Example: 0412 345 678 or +61 412 345 678.";
+      }
+    }
+
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     try {
+      setLoading(true);
+
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      // --- STEP 1: CREATE (JSON) ---
       const payload = {
         ...form,
         availability,
-        service_ids: [], // opcional
       };
 
       const res = await fetch("http://localhost:8080/api/users", {
@@ -81,37 +116,31 @@ export default function EmployeeForm({ onSuccess }: Props) {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || "Failed to create employee");
+      if (!res.ok)
+        throw new Error(data.message || "Failed to create employee.");
 
       const createdUserId = data.data.id;
 
-      // --- STEP 2: IF CONTRACT, UPLOAD VIA UPDATE ---
       if (contractPdf) {
-        const formData = new FormData();
-        formData.append("contract_pdf", contractPdf);
+        const fd = new FormData();
+        fd.append("_method", "PATCH");
+        fd.append("contract_pdf", contractPdf);
 
-        const updateRes = await fetch(
+        const uploadRes = await fetch(
           `http://localhost:8080/api/users/${createdUserId}`,
           {
-            method: "POST", // Laravel aceita POST + _method
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            body: (() => {
-              const fd = new FormData();
-              fd.append("_method", "PATCH");
-              fd.append("contract_pdf", contractPdf);
-              return fd;
-            })(),
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
           },
         );
 
-        const updateData = await updateRes.json();
-        if (!updateRes.ok)
-          throw new Error(updateData.message || "Failed to upload contract");
+        const uploadData = await uploadRes.json();
+
+        if (!uploadRes.ok)
+          throw new Error(uploadData.message || "Failed to upload contract.");
       }
 
-      // --- Reset ---
       setForm({
         display_name: "",
         full_name: "",
@@ -125,7 +154,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
       setContractPdf(null);
 
       setSuccess("Employee created successfully!");
-      if (typeof onSuccess === "function") onSuccess();
+      onSuccess?.();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -136,9 +165,12 @@ export default function EmployeeForm({ onSuccess }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-lg bg-white p-6 shadow-md"
+      className="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-gray-900"
     >
       <h2 className="text-lg font-semibold">Add New Employee</h2>
+
+      {error && <FormAlert type="error" message={error} />}
+      {success && <FormAlert type="success" message={success} />}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <input
@@ -146,7 +178,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
           placeholder="Display Name *"
           value={form.display_name}
           onChange={handleChange}
-          className="rounded border p-2"
+          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
           required
         />
 
@@ -155,7 +187,27 @@ export default function EmployeeForm({ onSuccess }: Props) {
           placeholder="Full Name *"
           value={form.full_name}
           onChange={handleChange}
-          className="rounded border p-2"
+          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
+          required
+        />
+
+        <input
+          name="email"
+          type="email"
+          placeholder="Email *"
+          value={form.email}
+          onChange={handleChange}
+          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
+          required
+        />
+
+        <input
+          name="password"
+          type="password"
+          placeholder="Password *"
+          value={form.password}
+          onChange={handleChange}
+          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
           required
         />
 
@@ -163,7 +215,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
           name="role"
           value={form.role}
           onChange={handleChange}
-          className="rounded border bg-white p-2"
+          className="rounded border bg-white p-2 dark:border-white dark:bg-[#3b3a3a] dark:text-white"
           required
         >
           <option value="" disabled>
@@ -176,31 +228,11 @@ export default function EmployeeForm({ onSuccess }: Props) {
         </select>
 
         <input
-          name="email"
-          type="email"
-          placeholder="Email *"
-          value={form.email}
-          onChange={handleChange}
-          className="rounded border p-2"
-          required
-        />
-
-        <input
-          name="password"
-          type="password"
-          placeholder="Password *"
-          value={form.password}
-          onChange={handleChange}
-          className="rounded border p-2"
-          required
-        />
-
-        <input
           name="phone"
-          placeholder="Phone"
+          placeholder="Phone (AU)"
           value={form.phone}
           onChange={handleChange}
-          className="rounded border p-2"
+          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
         />
 
         <input
@@ -208,40 +240,37 @@ export default function EmployeeForm({ onSuccess }: Props) {
           placeholder="Address"
           value={form.address}
           onChange={handleChange}
-          className="col-span-2 rounded border p-2"
+          className="col-span-2 rounded border p-2 dark:text-white dark:placeholder:text-white"
         />
+      </div>
 
-        <div className="col-span-2 mt-4">
-          <label className="mb-2 block font-semibold">
-            Weekly Availability
-          </label>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-            {weekDays.map((d) => (
-              <label key={d.key} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={availability.includes(d.key)}
-                  onChange={() => toggleDay(d.key)}
-                />
-                {d.label}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="col-span-2 mt-4">
-          <label className="mb-2 block font-semibold">Contract (PDF)</label>
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={handleContractUpload}
-            className="rounded border p-2"
-          />
+      {/* AVAILABILITY */}
+      <div className="mt-4">
+        <label className="mb-2 block font-semibold">Weekly Availability</label>
+        <div className="grid grid-cols-2 gap-2 dark:text-white md:grid-cols-3">
+          {weekDays.map((d) => (
+            <label key={d.key} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={availability.includes(d.key)}
+                onChange={() => toggleDay(d.key)}
+              />
+              {d.label}
+            </label>
+          ))}
         </div>
       </div>
 
-      {error && <p className="text-red-500">{error}</p>}
-      {success && <p className="text-green-500">{success}</p>}
+      {/* CONTRACT */}
+      <div className="mt-4">
+        <label className="mb-2 block font-semibold">Contract (PDF)</label>
+        <input
+          type="file"
+          accept="application/pdf"
+          onChange={handleContractUpload}
+          className="rounded border p-2"
+        />
+      </div>
 
       <Button
         label={loading ? "Saving..." : "Save Employee"}

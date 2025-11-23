@@ -19,8 +19,10 @@ export function Header() {
     "/companies/[id]/edit": "Companies",
     "/employees": "Employees",
     "/employees/[id]/edit": "Employees",
-    "/services": "Services",
+    "/services-catalog": "Services Catalog",
     "/services/[id]/edit": "Services",
+    "/start-service": "Start Service",
+    "start-service/[id]/edit": "Start Service",
     "/profile": "Profile",
     "/settings": "Settings",
   };
@@ -38,8 +40,12 @@ export function Header() {
       return pageTitles["/employees/[id]/edit"];
     }
 
-    if (pathname.match(/^\/services\/[^/]+\/edit$/)) {
-      return pageTitles["/services/[id]/edit"];
+    if (pathname.match(/^\/services-catalog\/[^/]+\/edit$/)) {
+      return pageTitles["/services-catalog/[id]/edit"];
+    }
+
+    if (pathname.match(/^\/start-service\/[^/]+\/edit$/)) {
+      return pageTitles["/start-service/[id]/edit"];
     }
 
     // fallback

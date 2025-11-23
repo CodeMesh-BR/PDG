@@ -14,9 +14,9 @@ class UserController extends Controller
     // GET /api/users
     public function index(Request $request)
     {
-        $query = User::query()
-            ->select('id', 'display_name', 'full_name', 'email', 'role', 'created_at')
-            ->orderByDesc('id');
+       $query = User::query()
+    ->select('id', 'display_name', 'full_name', 'email', 'role', 'availability', 'contract_pdf_path', 'created_at')
+    ->orderByDesc('id');
 
         return response()->json($query->paginate(15));
     }

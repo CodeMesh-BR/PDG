@@ -73,7 +73,7 @@ function canAccessPage(path: string, role: string | null): boolean {
   const rules: Record<string, string[]> = {
     "/employees": ["admin", "Supervisor"],
     "/companies": ["admin", "Supervisor"],
-    "/services": ["admin", "Supervisor"],
+    "/services-catalog": ["admin", "Supervisor"],
   };
 
   for (const [route, allowedRoles] of Object.entries(rules)) {

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useServices } from "../../../services/useService";
+
 import { Company } from "../../useCompanies";
+import { useServicesCatalog } from "@/app/(protected)/services-catalog/useServicesCatalog";
 
 export function useEditCompany(id: number) {
   const [company, setCompany] = useState<Company | null>(null);
@@ -10,7 +11,7 @@ export function useEditCompany(id: number) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const { services } = useServices();
+  const { services } = useServicesCatalog();
 
   const fetchCompany = async () => {
     try {

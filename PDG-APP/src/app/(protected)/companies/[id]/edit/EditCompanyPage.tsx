@@ -4,10 +4,17 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { useEditCompany } from "./useEditCompany";
 import { useRouter } from "next/navigation";
+import { FormAlert } from "@/components/FormAlerts/FormAlert";
 
 export default function EditCompanyPage({ id }: { id: number }) {
   const { company, loading, saving, error, services, saveCompany } =
     useEditCompany(id);
+  const [original, setOriginal] = useState({
+    display_name: "",
+    email: "",
+    address: "",
+  });
+
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -20,6 +27,31 @@ export default function EditCompanyPage({ id }: { id: number }) {
 
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [success, setSuccess] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const auPhoneRegex =
+    /^(0[23478]\d{8}|04\d{8}|\+612\d{8}|\+613\d{8}|\+617\d{8}|\+618\d{8}|\+614\d{8})$/;
+
+  const validateForm = () => {
+    if (form.name.trim().length < 2) {
+      return "Name must have at least 2 characters.";
+    }
+
+    if (!emailRegex.test(form.email.trim())) {
+      return "Please enter a valid email address.";
+    }
+
+    if (form.phone.trim()) {
+      const normalized = form.phone.replace(/[^0-9+]/g, "");
+      if (!auPhoneRegex.test(normalized)) {
+        return "Invalid Australian phone format. Example: 0412 345 678 or +61 2 9876 5432.";
+      }
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     if (company) {
@@ -31,12 +63,19 @@ export default function EditCompanyPage({ id }: { id: number }) {
         phone: company.phone || "",
       });
 
+      setOriginal({
+        display_name: company.display_name || "",
+        email: company.email || "",
+        address: company.address || "",
+      });
+
       setSelectedServices(company.services?.map((s) => s.id) || []);
     }
   }, [company]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setFormError("");
   };
 
   const handleAddService = (id: number) => {
@@ -52,6 +91,65 @@ export default function EditCompanyPage({ id }: { id: number }) {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccess("");
+    setFormError("");
+
+    const validationError = validateForm();
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/companies`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    const existing = await res.json();
+    const lowerEmail = form.email.toLowerCase();
+
+    if (form.email.toLowerCase() !== original.email.toLowerCase()) {
+      const exists = existing.data.some(
+        (c: any) =>
+          Number(c.id) !== Number(id) &&
+          c.email?.toLowerCase() === form.email.toLowerCase(),
+      );
+
+      if (exists) {
+        setFormError("This email is already registered.");
+        return;
+      }
+    }
+
+    if (
+      form.display_name.toLowerCase() !== original.display_name.toLowerCase()
+    ) {
+      const exists = existing.data.some(
+        (c: any) =>
+          Number(c.id) !== Number(id) &&
+          c.display_name?.toLowerCase() === form.display_name.toLowerCase(),
+      );
+
+      if (exists) {
+        setFormError("This display name already exists.");
+        return;
+      }
+    }
+
+    if (form.address.toLowerCase() !== original.address.toLowerCase()) {
+      const exists = existing.data.some(
+        (c: any) =>
+          Number(c.id) !== Number(id) &&
+          c.address?.toLowerCase() === form.address.toLowerCase(),
+      );
+
+      if (exists) {
+        setFormError("This address already exists.");
+        return;
+      }
+    }
 
     const ok = await saveCompany({
       ...form,
@@ -88,6 +186,9 @@ export default function EditCompanyPage({ id }: { id: number }) {
         onSubmit={handleSave}
         className="space-y-4 rounded-lg bg-white p-6 shadow-md"
       >
+        {formError && <FormAlert type="error" message={formError} />}
+        {success && <FormAlert type="success" message={success} />}
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <input
             name="name"
@@ -118,7 +219,7 @@ export default function EditCompanyPage({ id }: { id: number }) {
 
           <input
             name="phone"
-            placeholder="Phone"
+            placeholder="Phone (AU)"
             value={form.phone}
             onChange={handleChange}
             className="rounded border p-2"
@@ -133,7 +234,6 @@ export default function EditCompanyPage({ id }: { id: number }) {
           />
         </div>
 
-        {/* TAG SELECT */}
         <div className="mt-4">
           <label className="mb-1 block font-medium">Services</label>
 
@@ -153,6 +253,7 @@ export default function EditCompanyPage({ id }: { id: number }) {
             {selectedServices.map((id) => {
               const s = services.find((x) => x.id === id);
               if (!s) return null;
+
               return (
                 <span
                   key={id}
@@ -171,9 +272,6 @@ export default function EditCompanyPage({ id }: { id: number }) {
             })}
           </div>
         </div>
-
-        {success && <p className="text-green-600">{success}</p>}
-        {error && <p className="text-red-500">{error}</p>}
 
         <Button
           label={saving ? "Saving..." : "Save Changes"}

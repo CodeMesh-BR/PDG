@@ -1,39 +1,39 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-export interface Employee {
+export interface EmployeeListItem {
   id: number;
   display_name: string;
   full_name: string;
   email: string;
   role: string;
   created_at: string;
-  availability: string[];
-  contract_pdf_path: string;
+  availability?: string[];
+  contract_pdf_path?: string;
 }
 
 export function useEmployees() {
-  const [users, setUsers] = useState<Employee[]>([]);
+  const [users, setUsers] = useState<EmployeeListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      setError('');
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Unauthorized');
-      
-      const res = await fetch('http://localhost:8080/api/users', {
+      setError("");
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Unauthorized");
+
+      const res = await fetch("http://localhost:8080/api/users", {
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
+          Accept: "application/json",
         },
       });
-      
+
       if (!res.ok) throw new Error(`Failed to fetch users: ${res.statusText}`);
       const data = await res.json();
-      
+
       setUsers(data.data || []);
       setTotal(data.total || 0);
     } catch (err: any) {
@@ -42,10 +42,10 @@ export function useEmployees() {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchUsers();
   }, []);
-  
+
   return { users, total, loading, error, refresh: fetchUsers };
 }
