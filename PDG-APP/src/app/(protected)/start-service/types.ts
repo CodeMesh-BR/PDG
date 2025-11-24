@@ -1,4 +1,4 @@
-// app/services/start/types.ts
+// src/app/(protected)/start-service/types.ts
 
 export interface Company {
   id: number;
@@ -29,6 +29,8 @@ export interface OcrResponse {
   plate: string;
   score: number;
   debug_raw_google: string;
+  error?: string;
+  message?: string;
 }
 
 export interface ServiceLog {
@@ -58,8 +60,22 @@ export interface StartServicePayload {
   company_id: number;
   service_id: number;
   car_plate: string;
-  date: string;   // Y-m-d
+  date: string; // Y-m-d
   quantity?: number;
   notes?: string | null;
   force?: boolean;
+}
+
+export interface StartServiceResponse {
+  message: string;
+  data?: {
+    id: number;
+    company_id: number;
+    service_id: number;
+    car_plate: string;
+    performed_at: string;
+    quantity: number;
+    notes: string | null;
+  };
+  needs_confirmation?: boolean;
 }

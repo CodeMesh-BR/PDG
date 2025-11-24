@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useServices } from '../services/useService';
-
 export interface Company {
   id: number;
   name: string;
@@ -18,12 +16,10 @@ export interface Company {
 }
 
 export function useCompanies() {
-  const { services, loading: loadingServices } = useServices();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedServices, setSelectedServices] = useState<number[]>([]);
 
   
 
@@ -52,11 +48,6 @@ export function useCompanies() {
       setLoading(false);
     }
   };
-
-  const handleSelectServices = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  const values = Array.from(e.target.selectedOptions, option => Number(option.value));
-  setSelectedServices(values);
-};
 
 
   useEffect(() => {

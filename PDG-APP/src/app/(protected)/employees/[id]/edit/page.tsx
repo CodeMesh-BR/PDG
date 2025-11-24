@@ -1,17 +1,23 @@
 "use client";
 
 import { Button } from "@/components/ui-elements/button";
+import { FormAlert } from "@/components/FormAlerts/FormAlert";
 import { useEditEmployee } from "./useEditEmployee";
 
 export default function EditEmployeePage() {
   const {
     user,
+    availability,
+    weekDays,
+    contractPdf,
     loading,
     saving,
     error,
+    success,
     handleChange,
+    toggleDay,
+    handleContractUpload,
     handleSave,
-    handleDelete,
   } = useEditEmployee();
 
   if (loading)
@@ -21,116 +27,140 @@ export default function EditEmployeePage() {
       </div>
     );
 
-  if (error)
+  if (!user)
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p className="text-lg font-medium text-red-500">{error}</p>
+      <div className="flex h-screen items-center justify-center text-red-500">
+        Employee not found
       </div>
     );
 
-  if (!user) return null;
-
   return (
-    <div className="flex items-center justify-center p-6 dark:from-gray-900 dark:to-gray-950">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl ring-1 ring-gray-200 transition-all duration-200 dark:bg-gray-800 dark:ring-gray-700">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-            Edit Employee
-          </h1>
+    <div className="mx-auto max-w-xl p-6">
+      <h1 className="mb-6 text-2xl font-semibold">Edit Employee</h1>
+
+      {error && <FormAlert type="error" message={error} />}
+      {success && <FormAlert type="success" message={success} />}
+
+      <div className="space-y-4 rounded-lg bg-white p-6 shadow-md">
+        {/* SIMPLE FIELDS */}
+        <LabeledInput
+          label="Display Name"
+          value={user.display_name}
+          onChange={(v) => handleChange("display_name", v)}
+        />
+
+        <LabeledInput
+          label="Full Name"
+          value={user.full_name}
+          onChange={(v) => handleChange("full_name", v)}
+        />
+
+        <LabeledInput
+          label="Email"
+          type="email"
+          value={user.email}
+          onChange={(v) => handleChange("email", v)}
+        />
+
+        <LabeledInput
+          label="Phone"
+          value={user.phone || ""}
+          onChange={(v) => handleChange("phone", v)}
+          placeholder="+61 4XX XXX XXX"
+        />
+
+        <LabeledInput
+          label="Address"
+          value={user.address || ""}
+          onChange={(v) => handleChange("address", v)}
+        />
+
+        {/* ROLE SELECT */}
+        <div>
+          <label className="mb-1 block font-medium">Role</label>
+          <select
+            value={user.role}
+            onChange={(e) => handleChange("role", e.target.value)}
+            className="w-full rounded border p-2"
+          >
+            <option value="admin">Admin</option>
+            <option value="client">Client</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="detailer">Detailer</option>
+          </select>
         </div>
 
-        <div className="space-y-5">
-          <FormField
-            label="Display Name"
-            value={user.display_name}
-            onChange={(v) => handleChange("display_name", v)}
-            placeholder="Display Name"
-          />
-
-          <FormField
-            label="Full Name"
-            value={user.full_name}
-            onChange={(v) => handleChange("full_name", v)}
-            placeholder="Full Name"
-          />
-
-          <FormField
-            type="email"
-            label="Email"
-            value={user.email}
-            onChange={(v) => handleChange("email", v)}
-            placeholder="Email address"
-          />
-
-          <FormField
-            label="Phone (Australia)"
-            value={user.phone || ""}
-            onChange={(v) => handleChange("phone", v)}
-            placeholder="+61 4XX XXX XXX"
-          />
-
-          <FormField
-            label="Address"
-            value={user.address || ""}
-            onChange={(v) => handleChange("address", v)}
-            placeholder="123 George St, Sydney NSW 2000"
-          />
-
-          <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-900">
-            <h2 className="mb-4 text-lg font-medium text-gray-800 dark:text-gray-100">
-              Change Password
-            </h2>
-
-            <FormField
-              type="password"
-              label="New Password"
-              onChange={(v) => handleChange("password", v)}
-              placeholder="Enter new password"
-            />
-            <FormField
-              type="password"
-              label="Confirm Password"
-              onChange={(v) => handleChange("password_confirmation", v)}
-              placeholder="Confirm new password"
-            />
+        {/* AVAILABILITY */}
+        <div className="mt-3">
+          <label className="mb-1 block font-medium">Weekly Availability</label>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+            {weekDays.map((d) => (
+              <label key={d.key} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={availability.includes(d.key)}
+                  onChange={() => toggleDay(d.key)}
+                />
+                {d.label}
+              </label>
+            ))}
           </div>
+        </div>
 
-          <div>
-            <label className="text-sm font-medium text-gray-600 dark:text-gray-300">
-              Role
-            </label>
-            <select
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 p-3 text-sm text-gray-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-              value={user.role}
-              onChange={(e) => handleChange("role", e.target.value)}
+        {/* CONTRACT */}
+        <div className="mt-4">
+          <label className="mb-1 block font-medium">Contract (PDF)</label>
+
+          {user.contract_pdf_path && (
+            <a
+              href={user.contract_pdf_path}
+              target="_blank"
+              className="mb-2 block text-sm text-blue-600 underline"
             >
-              <option value="admin">Admin</option>
-              <option value="client">Client</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="detailer">Detailer</option>
-            </select>
-          </div>
+              View current contract
+            </a>
+          )}
 
-          <div className="flex gap-4 pt-6">
-            <Button
-              label={saving ? "Saving..." : "Save Changes"}
-              onClick={handleSave}
-              className="flex-1 rounded-lg bg-indigo-600 py-2.5 text-white shadow-md transition-all duration-200 hover:bg-indigo-700 hover:shadow-lg"
-            />
-            <Button
-              label="Delete"
-              onClick={handleDelete}
-              className="flex-1 rounded-lg bg-red-500 py-2.5 text-white shadow-md transition-all duration-200 hover:bg-red-600 hover:shadow-lg"
-            />
-          </div>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => handleContractUpload(e.target.files?.[0] || null)}
+            className="w-full rounded border p-2"
+          />
+        </div>
+
+        {/* PASSWORD CHANGE */}
+        <div className="mt-6 rounded-lg border bg-gray-50 p-4">
+          <p className="mb-2 font-medium">Change Password</p>
+
+          <LabeledInput
+            type="password"
+            label="New Password"
+            value={user.password || ""}
+            onChange={(v) => handleChange("password", v)}
+          />
+
+          <LabeledInput
+            type="password"
+            label="Confirm Password"
+            value={user.password_confirmation || ""}
+            onChange={(v) => handleChange("password_confirmation", v)}
+          />
+        </div>
+
+        <div className="pt-3">
+          <Button
+            label={saving ? "Saving..." : "Save Changes"}
+            onClick={handleSave}
+            disabled={saving}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-/* Reusable field component */
-function FormField({
+function LabeledInput({
   label,
   type = "text",
   value,
@@ -139,21 +169,19 @@ function FormField({
 }: {
   label: string;
   type?: string;
-  value?: string;
+  value: string;
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
   return (
     <div>
-      <label className="text-sm font-medium text-gray-600 dark:text-gray-300">
-        {label}
-      </label>
+      <label className="mb-1 block text-sm font-medium">{label}</label>
       <input
         type={type}
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
+        value={value}
         placeholder={placeholder}
-        className="mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 p-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded border p-2"
       />
     </div>
   );

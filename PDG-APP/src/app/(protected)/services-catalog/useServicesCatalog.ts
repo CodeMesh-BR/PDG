@@ -9,7 +9,7 @@ export interface Service {
   companies?: { id: number; name: string; display_name: string }[];
 }
 
-export function useServices() {
+export function useServicesCatalog() {
   const [services, setServices] = useState<Service[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ export function useServices() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Unauthorized');
 
-      const res = await fetch('http://localhost:8080/api/services', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',

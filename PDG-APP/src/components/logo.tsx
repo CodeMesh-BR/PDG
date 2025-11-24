@@ -16,7 +16,7 @@ export function Logo() {
 
       <Image
         src={darkLogo}
-        className="hidden dark:block"
+        className="hidden contrast-[0] dark:block"
         alt="NextAdmin logo"
         role="presentation"
         width={500}

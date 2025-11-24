@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { useRouter } from "next/navigation";
-import { useEditService } from "./useEditServices";
+import { useEditServiceCatalog } from "./useEditServicesCatalog";
+import { FormAlert } from "@/components/FormAlerts/FormAlert";
 
-export default function EditServicePage({ id }: { id: number }) {
-  const { service, loading, saving, error, saveService } = useEditService(id);
+export default function EditServiceCatalogPage({ id }: { id: number }) {
+  const { service, loading, saving, error, saveService } =
+    useEditServiceCatalog(id);
 
   const router = useRouter();
 
@@ -16,6 +18,7 @@ export default function EditServicePage({ id }: { id: number }) {
     value: "",
   });
 
+  const [localError, setLocalError] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
@@ -28,6 +31,22 @@ export default function EditServicePage({ id }: { id: number }) {
     }
   }, [service]);
 
+  const validate = () => {
+    if (form.type.trim().length < 2) {
+      return "Type must be at least 2 characters.";
+    }
+    if (form.description.trim().length < 3) {
+      return "Description must be at least 3 characters.";
+    }
+
+    const numericValue = Number(form.value);
+    if (!numericValue || numericValue <= 0) {
+      return "Value must be a number greater than zero.";
+    }
+
+    return null;
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -36,7 +55,14 @@ export default function EditServicePage({ id }: { id: number }) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLocalError("");
     setSuccess("");
+
+    const validationError = validate();
+    if (validationError) {
+      setLocalError(validationError);
+      return;
+    }
 
     const ok = await saveService(form);
 
@@ -64,6 +90,9 @@ export default function EditServicePage({ id }: { id: number }) {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-6 text-2xl font-semibold">Edit Service</h1>
+
+      {localError && <FormAlert type="error" message={localError} />}
+      {success && <FormAlert type="success" message={success} />}
 
       <form
         onSubmit={handleSave}
@@ -95,9 +124,6 @@ export default function EditServicePage({ id }: { id: number }) {
           className="w-full rounded border p-2"
           required
         />
-
-        {success && <p className="text-green-600">{success}</p>}
-        {error && <p className="text-red-600">{error}</p>}
 
         <Button
           label={saving ? "Saving…" : "Save Changes"}

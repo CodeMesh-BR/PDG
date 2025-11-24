@@ -1,9 +1,7 @@
 "use client";
 
 import { Company } from "../useCompanies";
-import { Button } from "@/components/ui-elements/button";
 import { useRouter } from "next/navigation";
-
 import { useState } from "react";
 
 interface Props {
@@ -31,8 +29,10 @@ export default function CompanyList({ companies, onRefresh }: Props) {
         },
       });
 
-      if (!res.ok && res.status !== 204)
+      if (!res.ok && res.status !== 204) {
         throw new Error("Failed to delete company");
+      }
+
       onRefresh();
     } catch (err: any) {
       alert(err.message);
@@ -46,48 +46,53 @@ export default function CompanyList({ companies, onRefresh }: Props) {
       {companies.map((c) => (
         <div
           key={c.id}
-          className="flex items-start justify-between rounded-lg border bg-gray-50 p-4 shadow-sm"
+          className="rounded-lg border bg-gray-50 p-4 shadow-sm dark:bg-gray-900"
         >
+          {/* INFO DA EMPRESA */}
           <div className="flex-1">
-            <h3 className="text-lg font-semibold">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
               {c.display_name || c.name}
             </h3>
 
-            <p className="text-sm text-gray-600">{c.email}</p>
-            <p className="text-sm text-gray-600">{c.phone}</p>
-            <p className="text-sm text-gray-400">{c.address}</p>
-
-            {/* SERVIÇOS */}
-            {c.services && c.services.length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {c.services.map((s) => (
-                  <span
-                    key={s.id}
-                    className="flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1 text-xs text-white"
-                  >
-                    {s.type}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-xs italic text-gray-400">
-                No services linked
-              </p>
-            )}
+            <p className="text-sm text-gray-600 dark:text-white">{c.email}</p>
+            <p className="text-sm text-gray-600 dark:text-white">{c.phone}</p>
+            <p className="text-sm text-gray-400 dark:text-white">{c.address}</p>
           </div>
 
-          <div className="ml-4 flex gap-2">
-            <Button
-              label={deletingId === c.id ? "Deleting..." : "Delete"}
+          {/* SERVIÇOS */}
+          {c.services && c.services.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {c.services.map((s) => (
+                <span
+                  key={s.id}
+                  className="flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1 text-xs text-white"
+                >
+                  {s.type}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs italic text-gray-400">
+              No services linked
+            </p>
+          )}
+
+          {/* BOTÕES ABAIXO */}
+          <div className="mt-4 flex gap-3">
+            <button
+              onClick={() => router.push(`/companies/${c.id}/edit`)}
+              className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
+            >
+              Edit
+            </button>
+
+            <button
               onClick={() => handleDelete(c.id)}
               disabled={deletingId === c.id}
-              variant="dark"
-            />
-            <Button
-              label="Edit"
-              onClick={() => router.push(`/companies/${c.id}/edit`)}
-              variant="primary"
-            />
+              className="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-600 disabled:opacity-60"
+            >
+              {deletingId === c.id ? "Deleting..." : "Delete"}
+            </button>
           </div>
         </div>
       ))}

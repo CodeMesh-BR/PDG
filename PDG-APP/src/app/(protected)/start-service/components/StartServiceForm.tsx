@@ -1,22 +1,24 @@
-// app/services/start/components/StartServiceForm/StartServiceForm.tsx
-
+// src/app/(protected)/start-service/components/StartServiceForm.tsx
 "use client";
 
 import { Button } from "@/components/ui-elements/button";
-import { useStartService } from "../useStartService";
+import type { UseStartServiceResult } from "../useStartService";
+
+interface StartServiceFormProps {
+  onSuccess: () => void;
+  service: UseStartServiceResult;
+}
 
 export default function StartServiceForm({
   onSuccess,
-}: {
-  onSuccess: () => void;
-}) {
+  service,
+}: StartServiceFormProps) {
   const {
     companies,
     services,
     selectedCompany,
     selectedService,
 
-    vehicleImage,
     ocrData,
     duplicateWarning,
 
@@ -27,7 +29,6 @@ export default function StartServiceForm({
 
     setSelectedCompany,
     setSelectedService,
-    setVehicleImage,
     setDuplicateWarning,
 
     handleImageChange,
@@ -35,7 +36,7 @@ export default function StartServiceForm({
     confirmStart,
     plate,
     setPlate,
-  } = useStartService();
+  } = service;
 
   const submit = async () => {
     const result = await handleStart();
@@ -57,11 +58,14 @@ export default function StartServiceForm({
       {/* Empresa */}
       <label className="mb-1 block text-sm">Company</label>
       <select
-        className="mb-4 w-full rounded border p-2"
+        className="mb-4 w-full rounded border p-2 dark:text-white dark:placeholder:text-white"
         value={selectedCompany ?? ""}
-        onChange={(e) => setSelectedCompany(Number(e.target.value))}
+        onChange={(e) =>
+          setSelectedCompany(e.target.value ? Number(e.target.value) : null)
+        }
       >
         <option value="">Select...</option>
+        {loadingCompanies && <option disabled>Loading companies...</option>}
         {companies.map((c) => (
           <option key={c.id} value={c.id}>
             {c.display_name ?? c.name}
@@ -72,12 +76,15 @@ export default function StartServiceForm({
       {/* Serviço */}
       <label className="mb-1 block text-sm">Service</label>
       <select
-        className="mb-4 w-full rounded border p-2"
+        className="mb-4 w-full rounded border p-2 dark:text-white dark:placeholder:text-white"
         disabled={!selectedCompany}
         value={selectedService ?? ""}
-        onChange={(e) => setSelectedService(Number(e.target.value))}
+        onChange={(e) =>
+          setSelectedService(e.target.value ? Number(e.target.value) : null)
+        }
       >
         <option value="">Select...</option>
+        {loadingServices && <option disabled>Loading services...</option>}
         {services.map((s) => (
           <option key={s.id} value={s.id}>
             {s.type}
@@ -91,12 +98,15 @@ export default function StartServiceForm({
       <input
         type="file"
         accept="image/*"
-        className="mb-2"
-        onChange={(e) => handleImageChange(e.target.files?.[0] ?? null)}
+        className="mb-2 dark:text-white dark:placeholder:text-white"
+        onChange={(e) => {
+          const file = e.target.files?.[0] ?? null;
+          void handleImageChange(file);
+        }}
       />
 
       {loadingOcr && (
-        <p className="mb-2 text-sm text-blue-500">Reading File...</p>
+        <p className="mb-2 text-sm text-blue-500">Reading file...</p>
       )}
 
       {ocrData && (
@@ -106,7 +116,7 @@ export default function StartServiceForm({
           </label>
           <input
             type="text"
-            value={plate ?? ""}
+            value={plate}
             onChange={(e) => setPlate(e.target.value.toUpperCase())}
             className="w-full rounded border p-2 uppercase"
             maxLength={10}
@@ -117,7 +127,7 @@ export default function StartServiceForm({
       <Button
         className="mt-4 w-full"
         label={saving ? "Starting..." : "Start"}
-        disabled={!ocrData || !selectedService}
+        disabled={!ocrData || !selectedService || saving}
         onClick={submit}
       />
 
@@ -129,7 +139,11 @@ export default function StartServiceForm({
 
           <div className="flex gap-3">
             <Button label="Confirm" onClick={confirmDuplicate} />
-            <Button label="Cancel" onClick={() => setDuplicateWarning(false)} />
+            <Button
+              label="Cancel"
+              onClick={() => setDuplicateWarning(false)}
+              variant="dark"
+            />
           </div>
         </div>
       )}

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Service } from '../useService';
+import { Service } from '../../useServicesCatalog';
 
-export function useEditService(id: number) {
+export function useEditServiceCatalog(id: number) {
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -14,7 +14,7 @@ export function useEditService(id: number) {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Unauthorized');
 
-      const res = await fetch(`http://localhost:8080/api/services/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
@@ -40,7 +40,7 @@ export function useEditService(id: number) {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Unauthorized');
 
-      const res = await fetch(`http://localhost:8080/api/services/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
