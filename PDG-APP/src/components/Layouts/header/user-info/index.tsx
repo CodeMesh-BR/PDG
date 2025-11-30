@@ -38,7 +38,7 @@ export function UserInfo() {
           return;
         }
 
-        const res = await fetch("http://localhost:8080/api/auth/me", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -69,7 +69,7 @@ export function UserInfo() {
       const token = localStorage.getItem("token");
 
       if (token) {
-        await fetch("http://localhost:8080/api/auth/logout", {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,

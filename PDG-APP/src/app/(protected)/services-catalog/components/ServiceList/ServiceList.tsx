@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Service } from "../../useServicesCatalog";
+import * as Icons from "../../../../icons";
 
 interface Props {
   services: Service[];
@@ -62,17 +63,19 @@ export default function ServiceCatalogList({ services, onRefresh }: Props) {
           <div className="mt-4 flex gap-3">
             <button
               onClick={() => router.push(`/services-catalog/${s.id}/edit`)}
-              className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm transition duration-200 hover:bg-blue-600 hover:text-white hover:shadow-md"
+              title="Edit service"
             >
-              Edit
+              <Icons.PencilIcon width={20} />
             </button>
 
             <button
               onClick={() => handleDelete(s.id)}
               disabled={deletingId === s.id}
-              className={`rounded bg-red-500 px-3 py-1 text-white hover:bg-red-600 disabled:opacity-60`}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 shadow-sm transition duration-200 hover:bg-red-600 hover:text-white hover:shadow-md"
+              title="Delete service"
             >
-              {deletingId === s.id ? "Deleting..." : "Delete"}
+              <Icons.TrashIcon width={20} />
             </button>
           </div>
         </div>

@@ -50,7 +50,7 @@ export function useEditEmployee() {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Unauthorized");
 
-        const res = await fetch(`http://localhost:8080/api/users/${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -127,7 +127,7 @@ Object.entries(payload).forEach(([key, value]) => {
   }
 });
 
-      const res = await fetch(`http://localhost:8080/api/users/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
         method: "POST", 
         headers: {
           Authorization: `Bearer ${token}`,
@@ -147,7 +147,7 @@ Object.entries(payload).forEach(([key, value]) => {
         fd.append("contract_pdf", contractPdf);
 
         const uploadRes = await fetch(
-          `http://localhost:8080/api/users/${id}`,
+         `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
           {
             method: "POST",
             headers: {

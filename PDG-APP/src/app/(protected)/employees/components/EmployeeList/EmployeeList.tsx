@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { EmployeeListItem } from "../../useEmployees";
+import * as Icons from "@/app/icons";
 
 interface Props {
   users: EmployeeListItem[];
@@ -31,13 +32,16 @@ export default function EmployeeList({ users, onRefresh }: Props) {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch(`http://localhost:8080/api/users/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
         },
-      });
+      );
 
       if (res.status !== 204 && !res.ok)
         throw new Error("Failed to delete employee");
@@ -110,17 +114,19 @@ export default function EmployeeList({ users, onRefresh }: Props) {
           <div className="flex h-fit gap-3">
             <button
               onClick={() => handleEdit(u.id)}
-              className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm transition duration-200 hover:bg-blue-600 hover:text-white hover:shadow-md"
+              title="Edit"
             >
-              Edit
+              <Icons.PencilIcon width={20} />
             </button>
 
             <button
               onClick={() => handleDelete(u.id)}
               disabled={deletingId === u.id}
-              className="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-600 disabled:opacity-60"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 shadow-sm transition duration-200 hover:bg-red-600 hover:text-white hover:shadow-md"
+              title="Delete"
             >
-              {deletingId === u.id ? "Deleting..." : "Delete"}
+              <Icons.TrashIcon width={20} />
             </button>
           </div>
         </div>

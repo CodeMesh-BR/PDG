@@ -18,12 +18,15 @@ export function useEditCompany(id: number) {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch(`http://localhost:8080/api/companies/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/companies/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
         },
-      });
+      );
 
       if (!res.ok) throw new Error("Failed to load company");
 
@@ -44,15 +47,18 @@ export function useEditCompany(id: number) {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch(`http://localhost:8080/api/companies/${id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/companies/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(updates),
         },
-        body: JSON.stringify(updates),
-      });
+      );
 
       if (!res.ok) {
         const err = await res.json();

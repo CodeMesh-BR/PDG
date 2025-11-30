@@ -24,7 +24,7 @@ export function useEmployees() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch("http://localhost:8080/api/users", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",

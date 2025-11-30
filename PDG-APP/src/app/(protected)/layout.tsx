@@ -8,11 +8,11 @@ export default function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [isClient, setIsClient] = useState(false);
-  const [authorized, setAuthorized] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  const [authorized, setAuthorized] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -23,9 +23,9 @@ export default function ProtectedLayout({
       return;
     }
 
-    const fetchUser = async () => {
+    const verify = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/auth/me", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -33,30 +33,25 @@ export default function ProtectedLayout({
         });
 
         if (!res.ok) throw new Error("Unauthorized");
+
         const data = await res.json();
+        const role = data?.data?.role;
 
-        const role = data?.data?.role || null;
-        setUserRole(role);
-
-        if (!canAccessPage(pathname, role)) {
+        if (!canAccess(pathname, role)) {
           router.replace("/unauthorized");
-          return;
+        } else {
+          setAuthorized(true);
         }
-
-        setAuthorized(true);
       } catch (err) {
-        console.error("Auth check failed:", err);
         localStorage.removeItem("token");
         router.replace("/auth/sign-in");
       }
     };
 
-    fetchUser();
-  }, [router, pathname]);
+    verify();
+  }, [pathname, router]);
 
-  if (!isClient) return null;
-
-  if (!authorized) {
+  if (!isClient || !authorized) {
     return (
       <div className="flex h-screen items-center justify-center text-gray-600">
         Checking access...
@@ -67,20 +62,12 @@ export default function ProtectedLayout({
   return <>{children}</>;
 }
 
-function canAccessPage(path: string, role: string | null): boolean {
+function canAccess(path: string, role: string | null): boolean {
   if (!role) return false;
 
-  const rules: Record<string, string[]> = {
-    "/employees": ["admin", "Supervisor"],
-    "/companies": ["admin", "Supervisor"],
-    "/services-catalog": ["admin", "Supervisor"],
-  };
+  if (role === "admin" || role === "supervisor") return true;
 
-  for (const [route, allowedRoles] of Object.entries(rules)) {
-    if (path.startsWith(route)) {
-      return allowedRoles.includes(role);
-    }
-  }
+  const detailerAllowed = ["/start-service", "/services-report", "/reports"];
 
-  return true;
+  return detailerAllowed.some((route) => path.startsWith(route));
 }

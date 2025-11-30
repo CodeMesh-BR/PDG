@@ -22,12 +22,15 @@ export function OverviewCardsGroup() {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Unauthorized");
 
-        const usersRes = await fetch("http://localhost:8080/api/users", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
+        const usersRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/users`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
           },
-        });
+        );
 
         if (!usersRes.ok) {
           const err = await usersRes.json();
@@ -37,12 +40,15 @@ export function OverviewCardsGroup() {
         const usersData = await usersRes.json();
         const totalEmployees = usersData.total ?? usersData.data?.length ?? 0;
 
-        const servicesRes = await fetch("http://localhost:8080/api/services", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
+        const servicesRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/services`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
           },
-        });
+        );
 
         if (!servicesRes.ok) {
           const err = await servicesRes.json();
