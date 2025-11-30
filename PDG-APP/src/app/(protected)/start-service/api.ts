@@ -168,3 +168,24 @@ export async function deleteServiceLog(id: number) {
   });
 }
 
+export async function fetchServiceLog(id: number): Promise<ServiceLog | null> {
+  const res = await request<{ data: ServiceLog }>(`${API_URL}/service-logs/${id}`, {
+    headers: authHeaders(),
+  });
+
+  return res.data?.data ?? null;
+}
+
+export async function updateServiceLog(
+  id: number,
+  payload: Partial<Omit<ServiceLog, "id">>
+) {
+  return request(`${API_URL}/service-logs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+}

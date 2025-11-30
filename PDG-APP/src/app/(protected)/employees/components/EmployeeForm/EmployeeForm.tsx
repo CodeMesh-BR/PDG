@@ -104,7 +104,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
         availability,
       };
 
-      const res = await fetch("http://localhost:8080/api/users", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -127,7 +127,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
         fd.append("contract_pdf", contractPdf);
 
         const uploadRes = await fetch(
-          `http://localhost:8080/api/users/${createdUserId}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/users/${createdUserId}`,
           {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },

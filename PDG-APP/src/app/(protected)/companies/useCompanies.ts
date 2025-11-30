@@ -30,7 +30,7 @@ export function useCompanies() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Unauthorized');
 
-      const res = await fetch('http://localhost:8080/api/companies', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/companies`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',

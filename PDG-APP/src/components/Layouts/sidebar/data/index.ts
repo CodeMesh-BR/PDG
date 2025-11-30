@@ -34,6 +34,12 @@ export const NAV_DATA = [
         icon: Icons.CarIcon,
         items: [],
       },
+      {
+        title: "Services Report",
+        url: "/services-report",
+        icon: Icons.ServicesReport,
+        items: [],
+      },
     ],
   },
 ];

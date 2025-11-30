@@ -29,7 +29,7 @@ export function useProfile() {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Unauthorized");
 
-        const res = await fetch("http://localhost:8080/api/auth/me", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -64,7 +64,7 @@ export function useProfile() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch(`http://localhost:8080/api/users/${user.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${user.id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
