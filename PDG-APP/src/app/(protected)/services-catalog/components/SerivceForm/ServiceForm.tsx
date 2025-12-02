@@ -92,13 +92,13 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
       {error && <FormAlert type="error" message={error} />}
       {success && <FormAlert type="success" message={success} />}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="flex flex-wrap gap-4">
         <input
           name="type"
           placeholder="Type *"
           value={form.type}
           onChange={handleChange}
-          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
+          className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
           required
         />
 
@@ -109,7 +109,7 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
           placeholder="Value *"
           value={form.value}
           onChange={handleChange}
-          className="rounded border p-2 dark:text-white dark:placeholder:text-white"
+          className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
           required
         />
 
@@ -119,7 +119,7 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
           value={form.description}
           onChange={handleChange}
           rows={3}
-          className="col-span-2 rounded border p-2 dark:text-white dark:placeholder:text-white"
+          className="col-span-2 w-full rounded border p-2 dark:text-white"
           required
         />
       </div>

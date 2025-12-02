@@ -176,13 +176,13 @@ export default function CompanyForm({ onSuccess }: Props) {
       {error && <FormAlert type="error" message={error} />}
       {success && <FormAlert type="success" message={success} />}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="flex flex-wrap gap-4">
         <input
           name="name"
           placeholder="Name *"
           value={form.name}
           onChange={handleChange}
-          className="rounded border p-2 dark:text-white"
+          className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
           required
         />
         <input
@@ -190,14 +190,14 @@ export default function CompanyForm({ onSuccess }: Props) {
           placeholder="Display name"
           value={form.display_name}
           onChange={handleChange}
-          className="rounded border p-2 dark:text-white"
+          className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
         />
         <input
           name="email"
           placeholder="Email *"
           value={form.email}
           onChange={handleChange}
-          className="rounded border p-2 dark:text-white"
+          className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
           required
         />
         <input
@@ -205,14 +205,14 @@ export default function CompanyForm({ onSuccess }: Props) {
           placeholder="Phone (AU)"
           value={form.phone}
           onChange={handleChange}
-          className="rounded border p-2 dark:text-white"
+          className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
         />
         <input
           name="address"
           placeholder="Address"
           value={form.address}
           onChange={handleChange}
-          className="col-span-2 rounded border p-2 dark:text-white"
+          className="w-full rounded border p-2 dark:text-white"
         />
       </div>
 
