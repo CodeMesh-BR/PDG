@@ -7,14 +7,8 @@ import { Checkbox } from "../FormElements/checkbox";
 import { useSigninWithPassword } from "./useSigninWithPassword";
 
 export default function SigninWithPassword() {
-const {
-    data,
-    setData,
-    handleChange,
-    handleSubmit,
-    loading,
-    error,
-  } = useSigninWithPassword();
+  const { data, setData, handleChange, handleSubmit, loading, error } =
+    useSigninWithPassword();
 
   return (
     <form onSubmit={handleSubmit}>
@@ -64,6 +58,12 @@ const {
       </div>
 
       <div className="mb-4.5">
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-100 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+            {error}
+          </div>
+        )}
+
         <button
           type="submit"
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary p-4 font-medium text-white transition hover:bg-opacity-90"

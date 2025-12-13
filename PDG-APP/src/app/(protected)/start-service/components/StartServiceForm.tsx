@@ -162,10 +162,33 @@ export default function StartServiceForm({
         )}
       </div>
 
+      {/* PLATE INPUT (APÓS OCR) */}
+      {(ocrData || loadingOcr) && (
+        <div className="mt-4">
+          <label className="mb-1 block text-sm">Vehicle plate</label>
+
+          <input
+            type="text"
+            value={plate}
+            onChange={(e) => setPlate(e.target.value.toUpperCase())}
+            placeholder="Enter or correct the plate"
+            className="w-full rounded border p-2 dark:bg-gray-800 dark:text-white"
+            disabled={loadingOcr}
+          />
+
+          {ocrData?.plate && (
+            <p className="mt-1 text-xs text-gray-500">
+              OCR detected: <b>{ocrData.plate}</b>
+            </p>
+          )}
+        </div>
+      )}
+
       <Button
+        type="button"
         className="mt-4 w-full"
         label={saving ? "Starting..." : "Start"}
-        disabled={!ocrData || !selectedService || saving}
+        disabled={!plate || !selectedService || saving}
         onClick={submit}
       />
 

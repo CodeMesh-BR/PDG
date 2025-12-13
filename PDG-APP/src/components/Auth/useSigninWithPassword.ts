@@ -20,15 +20,14 @@ export function useSigninWithPassword() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const { name, value, type, checked } = e.target;
-    setData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
+const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setError('');
+  const { name, value, type, checked } = e.target;
+  setData((prev) => ({
+    ...prev,
+    [name]: type === 'checkbox' ? checked : value,
+  }));
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -9,12 +9,15 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\PlateOcrController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\DashboardController;
+
 
 // Preflight CORS (opcional)
 Route::options('{any}', fn() => response()->noContent())->where('any', '.*');
 
 // Auth (público)
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -56,4 +59,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reports
     Route::get('/reports/services', [ReportController::class, 'services']);
     Route::get('/reports/services/summary', [ReportController::class, 'servicesSummary']);
+
+    // Dashboard
+    Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+    Route::get('/dashboard/today-by-company', [DashboardController::class, 'todayByCompany']);
 });

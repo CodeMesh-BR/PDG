@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOutIcon, SettingsIcon } from "./icons";
+import { LogOut, Settings } from "lucide-react";
 
 interface UserProfile {
   id: number;
@@ -134,7 +134,7 @@ export function UserInfo() {
             onClick={() => setIsOpen(false)}
             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] hover:bg-gray-2 hover:text-dark dark:hover:bg-dark-3 dark:hover:text-white"
           >
-            <SettingsIcon />
+            <Settings />
             <span className="mr-auto text-base font-medium">Profile</span>
           </Link>
         </div>
@@ -151,7 +151,7 @@ export function UserInfo() {
             onClick={handleLogout}
             disabled={loadingLogout}
           >
-            <LogOutIcon />
+            <LogOut />
             <span className="text-base font-medium">
               {loadingLogout ? "Logging out..." : "Log out"}
             </span>

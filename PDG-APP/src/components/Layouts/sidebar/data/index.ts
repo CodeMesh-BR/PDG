@@ -1,4 +1,11 @@
-import * as Icons from "../icons";
+import {
+  LayoutDashboard,
+  Store,
+  SprayCan,
+  Users,
+  Car,
+  FileText,
+} from "lucide-react";
 
 export const NAV_DATA = [
   {
@@ -6,38 +13,38 @@ export const NAV_DATA = [
     items: [
       {
         title: "Dashboard",
-        icon: Icons.DashboardIcon,
-        url:"/",
+        icon: LayoutDashboard,
+        url: "/",
         items: [],
       },
       {
         title: "Companies",
-        icon: Icons.Store,
-        url:"/companies",
+        icon: Store,
+        url: "/companies",
         items: [],
       },
       {
         title: "Service Catalog",
+        icon: SprayCan,
         url: "/services-catalog",
-        icon: Icons.SprayBottleIcon,
         items: [],
       },
-       {
+      {
         title: "Employees",
+        icon: Users,
         url: "/employees",
-        icon: Icons.UserListIcon,
         items: [],
       },
       {
         title: "Start Service",
+        icon: Car,
         url: "/start-service",
-        icon: Icons.CarIcon,
         items: [],
       },
       {
         title: "Services Report",
+        icon: FileText,
         url: "/services-report",
-        icon: Icons.ServicesReport,
         items: [],
       },
     ],

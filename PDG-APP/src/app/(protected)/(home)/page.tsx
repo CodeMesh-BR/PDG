@@ -1,24 +1,31 @@
-
-import { createTimeFrameExtractor } from "@/utils/timeframe-extractor";
+"use client";
 import { Suspense } from "react";
-import { OverviewCardsGroup } from "./_components/overview-cards";
-import { OverviewCardsSkeleton } from "./_components/overview-cards/skeleton";
+import { OverviewCardsGroup } from "./components/overview-cards";
+import { OverviewCardsSkeleton } from "./components/overview-cards/skeleton";
+import { WeeklyServicesChart } from "./components/WeeklyServiceChart";
+import { FortnightServicesChart } from "./components/FortnightServicesChart";
+import { useDashboardOverview } from "./useDashboardOverview";
+import { CompaniesTodayList } from "./components/CompanieTodayList";
 
-type PropsType = {
-  searchParams: Promise<{
-    selected_time_frame?: string;
-  }>;
-};
+export default function Home() {
+  return (
+    <Suspense fallback={<OverviewCardsSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
 
-export default async function Home({ searchParams }: PropsType) {
-  const { selected_time_frame } = await searchParams;
-  const extractTimeFrame = createTimeFrameExtractor(selected_time_frame);
+function DashboardContent() {
+  const { data } = useDashboardOverview();
+
+  if (!data) return null;
 
   return (
     <>
-      <Suspense fallback={<OverviewCardsSkeleton />}>
-        <OverviewCardsGroup />
-      </Suspense>
+      <OverviewCardsGroup today={data.today} />
+      <CompaniesTodayList />
+      <WeeklyServicesChart data={data.week} />
+      <FortnightServicesChart data={data.fortnight} />
     </>
   );
 }

@@ -1,11 +1,7 @@
 "use client";
 
-import { SearchIcon } from "@/assets/icons";
-import Image from "next/image";
-import Link from "next/link";
+import { Menu } from "lucide-react";
 import { useSidebarContext } from "../sidebar/sidebar-context";
-import { MenuIcon } from "./icons";
-import { Notification } from "./notification";
 import { ThemeToggleSwitch } from "./theme-toggle";
 import { UserInfo } from "./user-info";
 import { usePathname } from "next/navigation";
@@ -60,11 +56,11 @@ export function Header() {
         onClick={toggleSidebar}
         className="rounded-lg border px-1.5 py-1 dark:border-stroke-dark dark:bg-[#020D1A] hover:dark:bg-[#FFFFFF1A] lg:hidden"
       >
-        <MenuIcon />
+        <Menu />
         <span className="sr-only">Toggle Sidebar</span>
       </button>
 
-      {isMobile && (
+      {/* {isMobile && (
         <Link href={"/"} className="ml-2 max-[430px]:hidden min-[375px]:ml-4">
           <Image
             src={"/images/logo/logo-icon.svg"}
@@ -74,7 +70,7 @@ export function Header() {
             role="presentation"
           />
         </Link>
-      )}
+      )} */}
 
       <div className="max-xl:hidden">
         <h1 className="mb-0.5 text-heading-5 font-bold text-dark dark:text-white">
