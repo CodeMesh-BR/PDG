@@ -35,18 +35,18 @@ export default function ServicesReportPage() {
 
   const exportCSV = () => {
     if (!report?.data) return;
-
     const rows = report.data.map((r: any) => [
       r.performed_at.slice(0, 10),
       r.company_name,
-      r.display_name ?? r.full_name ?? "—", // ⬅ added
+      r.display_name ?? r.full_name ?? "—",
+      r.car_plate ?? "—", // NOVO
       r.service_type,
       r.total_quantity,
       Number(r.total_amount).toFixed(2),
     ]);
 
     const csv = [
-      ["Date", "Company", "Employee", "Service", "Quantity", "Total"],
+      ["Date", "Company", "Employee", "Plate", "Service", "Quantity", "Total"],
       ...rows,
     ]
       .map((r) => r.join(","))
@@ -111,12 +111,16 @@ export default function ServicesReportPage() {
 
     autoTable(pdf, {
       startY: 185,
-      head: [["Date", "Company", "Employee", "Service", "Qty", "Total"]],
+      head: [
+        ["Date", "Company", "Employee", "Plate", "Service", "Qty", "Total"],
+      ],
+
       theme: "grid",
       body: report.data.map((r: any) => [
         r.performed_at.slice(0, 10),
         r.company_name,
         r.display_name ?? r.full_name ?? "—",
+        r.car_plate ?? "—", // NOVO
         r.service_type,
         r.total_quantity,
         Number(r.total_amount).toFixed(2),
@@ -251,11 +255,12 @@ export default function ServicesReportPage() {
           {/* table */}
           <div className="overflow-auto rounded-xl border shadow-lg">
             <table className="w-full text-sm">
-              <thead className="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white">
+              <thead className="bg-gray-200 text-left text-gray-800 dark:bg-gray-700 dark:text-white">
                 <tr>
                   <th className="p-3">Date</th>
                   <th className="p-3">Employee</th>
                   <th className="p-3">Company</th>
+                  <th className="p-3">Plate</th>
                   <th className="p-3">Service</th>
                   <th className="p-3 text-center">Qty</th>
                   <th className="p-3 text-right">Total</th>
@@ -269,6 +274,7 @@ export default function ServicesReportPage() {
                       {r.display_name ?? r.full_name ?? "—"}
                     </td>
                     <td className="p-3">{r.company_name}</td>
+                    <td className="p-3">{r.car_plate ?? "—"}</td>
                     <td className="p-3">{r.service_type}</td>
                     <td className="p-3 text-center">{r.total_quantity}</td>
                     <td className="p-3 text-right">
@@ -280,9 +286,11 @@ export default function ServicesReportPage() {
 
               {/* FOOTER TOTALS */}
               <tfoot>
-                <tr className="bg-gray-100 font-semibold dark:bg-gray-700">
-                  <td className="p-3"></td>
+                <tr className="bg-gray-100 text-left font-semibold dark:bg-gray-700">
                   <td className="p-3">TOTAL</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
                   <td></td>
                   <td className="p-3 text-center">
                     {report.grand_totals.total_quantity}

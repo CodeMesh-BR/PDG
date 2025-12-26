@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui-elements/button";
 import { useStartService } from "./useStartService";
 import StartServiceForm from "./components/StartServiceForm";
 import StartServiceList from "./components/StartServiceList";
@@ -14,12 +13,6 @@ export default function StartServicePage() {
   const service = useStartService();
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await service.refreshLogs();
-    setRefreshing(false);
-  };
 
   const handleDelete = async (id: number) => {
     await deleteServiceLog(id);
@@ -51,7 +44,6 @@ export default function StartServicePage() {
               <p className="text-gray-500">
                 {service.total} services started today
               </p>
-              <Button label="Refresh" onClick={handleRefresh} />
             </div>
 
             <StartServiceList

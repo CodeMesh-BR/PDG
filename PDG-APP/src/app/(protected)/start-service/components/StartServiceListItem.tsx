@@ -1,7 +1,7 @@
 "use client";
 
 import type { ServiceLog } from "../types";
-import * as Icons from "../../../icons";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface Props {
   log: ServiceLog;
@@ -36,7 +36,7 @@ export default function StartServiceListItem({ log, onDelete, onEdit }: Props) {
           className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm transition duration-200 hover:bg-blue-600 hover:text-white hover:shadow-md"
           title="Edit service"
         >
-          <Icons.PencilIcon width={20} />
+          <Pencil size={18} strokeWidth={2} />
         </button>
 
         {/* DELETE BUTTON */}
@@ -45,7 +45,7 @@ export default function StartServiceListItem({ log, onDelete, onEdit }: Props) {
           className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 shadow-sm transition duration-200 hover:bg-red-600 hover:text-white hover:shadow-md"
           title="Delete service"
         >
-          <Icons.TrashIcon width={20} />
+          <Trash2 size={18} strokeWidth={2} />
         </button>
       </div>
     </div>
