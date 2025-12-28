@@ -41,7 +41,7 @@ export default function EditEmployeePage() {
       {error && <FormAlert type="error" message={error} />}
       {success && <FormAlert type="success" message={success} />}
 
-      <div className="space-y-4 rounded-lg bg-white p-6 shadow-md">
+      <div className="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-gray-900">
         {/* SIMPLE FIELDS */}
         <LabeledInput
           label="Display Name"
@@ -130,7 +130,7 @@ export default function EditEmployeePage() {
         </div>
 
         {/* PASSWORD CHANGE */}
-        <div className="mt-6 rounded-lg border bg-gray-50 p-4">
+        <div className="mt-6 rounded-lg border bg-gray-50 p-4 dark:bg-gray-900">
           <p className="mb-2 font-medium">Change Password</p>
 
           <LabeledInput

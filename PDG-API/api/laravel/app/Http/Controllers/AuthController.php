@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
@@ -81,48 +82,41 @@ class AuthController extends Controller
     }
 
     // POST /api/auth/forgot-password
-public function forgotPassword(Request $request)
-{
-    $request->validate([
-        'email' => ['required', 'email'],
-    ]);
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
 
-    // resposta genérica (não vaza se o email existe)
-    $response = [
-        'message' => 'If this email exists, a new temporary password has been sent.',
-    ];
+        $response = [
+            'message' => 'If this email exists, a new temporary password has been sent.',
+        ];
 
-    $user = User::where('email', strtolower($request->email))->first();
+        $user = User::where('email', strtolower($request->email))->first();
 
-    // Se não existir, retorna resposta genérica
-    if (!$user) {
+        if (!$user) {
+            return response()->json($response);
+        }
+
+        $temporaryPassword = Str::random(10);
+        $user->password = Hash::make($temporaryPassword);
+        $user->save();
+
+        try {
+            Mail::raw(
+                "Your temporary password is:\n\n{$temporaryPassword}\n\nPlease log in and change it immediately.",
+                function ($message) use ($user) {
+                    $message
+                        ->to($user->email)
+                        ->subject('Password Reset - Temporary Password');
+                }
+            );
+        } catch (\Throwable $e) {
+            Log::error('Forgot password mail error', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json($response);
     }
-
-    // Gera senha temporária (10 caracteres)
-    $temporaryPassword = Str::random(10);
-
-    // Atualiza senha SEM exigir senha atual
-    $user->password = Hash::make($temporaryPassword);
-    $user->save();
-
-    // Envia email simples
-    try {
-    Mail::raw(
-        "Your temporary password is:\n\n{$temporaryPassword}\n\nPlease log in and change it immediately.",
-        function ($message) use ($user) {
-            $message
-                ->to($user->email)
-                ->subject('Password Reset - Temporary Password');
-        }
-    );
-} catch (\Throwable $e) {
-    \Log::error('Forgot password mail error', [
-        'error' => $e->getMessage(),
-    ]);
-}
-
-    return response()->json($response);
-}
-
 }
