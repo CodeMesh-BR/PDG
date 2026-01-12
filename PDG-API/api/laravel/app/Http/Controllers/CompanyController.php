@@ -14,7 +14,7 @@ class CompanyController extends Controller
         $companies = \App\Models\Company::with(['services' => function ($q) {
             $q->select('services.id', 'type', 'description', 'value');
         }])
-            ->select('id', 'name', 'display_name', 'email', 'address', 'phone', 'created_at')
+            ->select('id', 'name', 'display_name', 'email', 'address', 'phone', 'default_service_id', 'created_at')
             ->orderByDesc('id')
             ->paginate(15);
 
@@ -30,6 +30,7 @@ class CompanyController extends Controller
             'email'        => ['required', 'email:rfc', 'max:255', 'unique:companies,email'],
             'address'      => ['nullable', 'string', 'max:255'],
             'phone'        => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9\s\-()]{7,20}$/'],
+            'default_service_id' => ['required', 'integer', 'exists:services,id'],
 
             'service_ids'   => ['sometimes', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
@@ -46,9 +47,11 @@ class CompanyController extends Controller
         $validated['email'] = strtolower($validated['email']);
         $company = Company::create($validated);
 
-        if ($request->has('service_ids')) {
-            $company->services()->sync($validated['service_ids'] ?? []);
+        $serviceIds = $validated['service_ids'] ?? [];
+        if (!in_array($validated['default_service_id'], $serviceIds, true)) {
+            $serviceIds[] = $validated['default_service_id'];
         }
+        $company->services()->sync($serviceIds);
 
         return response()->json([
             'message' => 'Company created successfully',
@@ -59,6 +62,7 @@ class CompanyController extends Controller
                 'email',
                 'address',
                 'phone',
+                'default_service_id',
                 'services',
                 'created_at'
             ]),
@@ -78,6 +82,7 @@ class CompanyController extends Controller
                 'email',
                 'address',
                 'phone',
+                'default_service_id',
                 'services',
                 'created_at',
                 'updated_at'
@@ -96,6 +101,7 @@ class CompanyController extends Controller
             'email'        => ['sometimes', 'email:rfc', 'max:255', Rule::unique('companies', 'email')->ignore($company->id)],
             'address'      => ['sometimes', 'string', 'max:255'],
             'phone'        => ['sometimes', 'string', 'max:20', 'regex:/^\+?[0-9\s\-()]{7,20}$/'],
+            'default_service_id' => ['sometimes', 'integer', 'exists:services,id'],
 
             'service_ids'   => ['sometimes', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
@@ -107,13 +113,27 @@ class CompanyController extends Controller
 
         $company->fill($validated)->save();
 
-        // ← sincroniza serviços
+        $serviceIds = null;
         if ($request->has('service_ids')) {
-            $company->services()->sync($validated['service_ids']);
+            $serviceIds = $validated['service_ids'] ?? [];
         }
 
-        // retornar já com os serviços atualizados
-        $company->load('services:id,type,description,value');
+        $effectiveDefaultServiceId = $company->default_service_id;
+        if (array_key_exists('default_service_id', $validated)) {
+            $effectiveDefaultServiceId = $validated['default_service_id'];
+        }
+
+        if ($serviceIds !== null) {
+            if ($effectiveDefaultServiceId && !in_array($effectiveDefaultServiceId, $serviceIds, true)) {
+                $serviceIds[] = $effectiveDefaultServiceId;
+            }
+            $company->services()->sync($serviceIds);
+        } elseif (array_key_exists('default_service_id', $validated)) {
+            $company->services()->syncWithoutDetaching([$effectiveDefaultServiceId]);
+        }
+
+        // retornar ja com os servicos atualizados
+        $company->load('services:id,type,description,value', 'defaultService:id,type,description,value');
 
         return response()->json([
             'message' => 'Company updated successfully',
@@ -130,3 +150,4 @@ class CompanyController extends Controller
         return response()->json(null, 204);
     }
 }
+

@@ -14,6 +14,7 @@ class Company extends Model
         'email',
         'address',
         'phone',
+        'default_service_id',
     ];
 
     protected $casts = [
@@ -23,5 +24,10 @@ class Company extends Model
     public function services()
     {
         return $this->belongsToMany(\App\Models\Service::class, 'service_company');
+    }
+
+    public function defaultService()
+    {
+        return $this->belongsTo(\App\Models\Service::class, 'default_service_id');
     }
 }

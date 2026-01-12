@@ -184,7 +184,7 @@ export default function EditCompanyPage({ id }: { id: number }) {
 
       <form
         onSubmit={handleSave}
-        className="space-y-4 rounded-lg bg-white p-6 shadow-md"
+        className="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-gray-900"
       >
         {formError && <FormAlert type="error" message={formError} />}
         {success && <FormAlert type="success" message={success} />}
