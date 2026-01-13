@@ -55,7 +55,6 @@ export default function ServiceCatalogList({ services, onRefresh }: Props) {
 
   return (
     <>
-      {/* Mobile: cards */}
       <div className="space-y-3 sm:hidden">
         {services.map((s) => (
           <div
@@ -117,7 +116,6 @@ export default function ServiceCatalogList({ services, onRefresh }: Props) {
         ))}
       </div>
 
-      {/* Desktop: table */}
       <div className="hidden overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:block">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

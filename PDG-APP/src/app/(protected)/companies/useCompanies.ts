@@ -1,4 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+
+export interface CompanyService {
+  id: number;
+  type: string;
+  description: string;
+  value: string;
+}
+
 export interface Company {
   id: number;
   name: string;
@@ -7,6 +15,7 @@ export interface Company {
   address?: string;
   phone?: string;
   created_at: string;
+  default_service_id: number;
   services?: {
     id: number;
     type: string;
@@ -19,21 +28,20 @@ export function useCompanies() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  
+  const [error, setError] = useState("");
 
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      setError('');
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Unauthorized');
+      setError("");
+
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Unauthorized");
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/companies`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
+          Accept: "application/json",
         },
       });
 
@@ -48,7 +56,6 @@ export function useCompanies() {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     fetchCompanies();

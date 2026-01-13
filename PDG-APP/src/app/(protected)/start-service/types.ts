@@ -1,4 +1,4 @@
-// src/app/(protected)/start-service/types.ts
+
 
 export interface Company {
   id: number;
@@ -8,6 +8,7 @@ export interface Company {
   address: string | null;
   phone: string | null;
   created_at: string;
+  default_service_id?: number | null;
   services?: Service[];
 }
 
@@ -28,7 +29,11 @@ export interface Paginated<T> {
 export interface OcrResponse {
   plate: string;
   score: number;
-  debug_raw_google: string;
+
+  debug_raw_google?: string;
+  debug_vehicle_box?: any;
+  debug_plate_zone?: any;
+
   error?: string;
   message?: string;
 }
@@ -60,7 +65,7 @@ export interface StartServicePayload {
   company_id: number;
   service_id: number;
   car_plate: string;
-  date: string; // Y-m-d
+  date: string;
   quantity?: number;
   notes?: string | null;
   force?: boolean;

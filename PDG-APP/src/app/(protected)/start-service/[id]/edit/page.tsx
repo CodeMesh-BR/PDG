@@ -27,7 +27,6 @@ export default function EditServicePage() {
   const [serviceList, setServiceList] = useState<Service[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // 1 — Carregar log existente
   useEffect(() => {
     const load = async () => {
       const result = await fetchServiceLog(Number(id));
@@ -45,14 +44,12 @@ export default function EditServicePage() {
     void load();
   }, [id]);
 
-  // 2 — Carregar empresas
   useEffect(() => {
     fetch("/api/companies")
       .then((r) => r.json())
       .then((r) => setCompanyList(r.data));
   }, []);
 
-  // 3 — Carregar serviços ao selecionar empresa
   useEffect(() => {
     if (!company) return;
     void fetchCompanyServices(company).then(setServiceList);
@@ -72,7 +69,7 @@ export default function EditServicePage() {
     });
 
     setSaving(false);
-    router.push("/start-service"); // volta pra listagem
+    router.push("/start-service");
   };
 
   if (loading) return <p className="p-6">Carregando...</p>;
@@ -83,7 +80,6 @@ export default function EditServicePage() {
     <div className="p-6">
       <h1 className="mb-6 text-2xl font-semibold">Edit service #{log.id}</h1>
 
-      {/* Empresa */}
       <label className="mb-1 block">Company</label>
       <select
         value={company ?? ""}
@@ -98,7 +94,6 @@ export default function EditServicePage() {
         ))}
       </select>
 
-      {/* Serviço */}
       <label className="mb-1 block">Service</label>
       <select
         value={service ?? ""}
@@ -113,7 +108,6 @@ export default function EditServicePage() {
         ))}
       </select>
 
-      {/* Placa */}
       <label className="mb-1 block">Plate</label>
       <input
         className="mb-4 w-full border p-2 uppercase"

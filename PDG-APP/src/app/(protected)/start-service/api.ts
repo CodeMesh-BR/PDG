@@ -1,4 +1,3 @@
-// src/app/(protected)/start-service/api.ts
 "use client";
 
 import {
@@ -23,10 +22,6 @@ interface RequestResult<T> {
   data: T | null;
 }
 
-/**
- * Helper para requisições JSON.
- * NÃO usar com FormData.
- */
 async function request<T>(
   url: string,
   options: RequestInit = {}
@@ -52,14 +47,12 @@ async function request<T>(
   };
 }
 
-/* ------------------------------------------
-   OCR
--------------------------------------------*/
+
 export async function sendOcrImage(
   file: File
 ): Promise<{ status: number; data: OcrResponse | null }> {
   const form = new FormData();
-  form.append("image", file); // backend espera 'image'
+  form.append("image", file);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -83,13 +76,9 @@ export async function sendOcrImage(
   };
 }
 
-/* ------------------------------------------
-   START SERVICE LOG
--------------------------------------------*/
 export async function startServiceLog(
   payload: StartServicePayload
 ): Promise<RequestResult<StartServiceResponse>> {
-  // garante formato Y-m-d
   const date = payload.date.slice(0, 10);
 
   return request<StartServiceResponse>(`${API_URL}/service-logs`, {
@@ -105,9 +94,7 @@ export async function startServiceLog(
   });
 }
 
-/* ------------------------------------------
-   COMPANIES
--------------------------------------------*/
+
 export async function fetchCompanies(): Promise<Paginated<Company>> {
   const res = await request<Paginated<Company>>(`${API_URL}/companies`, {
     headers: authHeaders(),
@@ -136,9 +123,6 @@ export async function fetchCompanyServices(
   return res.data?.data?.services ?? [];
 }
 
-/* ------------------------------------------
-   TODAY LOGS
--------------------------------------------*/
 export async function fetchTodayLogs(): Promise<{
   total: number;
   data: ServiceLog[];

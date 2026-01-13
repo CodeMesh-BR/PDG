@@ -28,7 +28,6 @@ export function UserInfo() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const router = useRouter();
 
-  // === BUSCA O MESMO /auth/me DO useProfile ===
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -51,7 +50,6 @@ export function UserInfo() {
 
         const data = await res.json();
 
-        // MESMA LÓGICA DO useProfile: data.data
         const profile: UserProfile = data.data;
         setUser(profile);
       } catch (err) {
@@ -115,7 +113,6 @@ export function UserInfo() {
         className="border border-stroke bg-white shadow-md dark:border-dark-3 dark:bg-gray-dark min-[230px]:min-w-[17.5rem]"
         align="end"
       >
-        {/* USER INFO */}
         <figure className="flex items-center gap-2.5 px-5 py-3.5">
           <figcaption className="space-y-1 text-base font-medium">
             <div className="mb-2 leading-none text-dark dark:text-white">
@@ -127,7 +124,6 @@ export function UserInfo() {
 
         <hr className="border-[#E8E8E8] dark:border-dark-3" />
 
-        {/* PROFILE */}
         <div className="p-2 text-base text-[#4B5563] dark:text-dark-6">
           <Link
             href={"/profile"}
@@ -141,7 +137,6 @@ export function UserInfo() {
 
         <hr className="border-[#E8E8E8] dark:border-dark-3" />
 
-        {/* LOGOUT */}
         <div className="p-2 text-base text-[#4B5563] dark:text-dark-6">
           <button
             className={cn(

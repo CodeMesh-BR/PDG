@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-// import { Moon, Sun } from "./icons";
 import { Moon, SunMedium } from "lucide-react";
 
 const THEMES = [
@@ -37,7 +36,6 @@ export function ThemeToggleSwitch() {
       </span>
 
       <span aria-hidden className="relative flex gap-2.5">
-        {/* Indicator */}
         <span className="absolute size-[38px] rounded-full border border-gray-200 bg-white transition-all dark:translate-x-[48px] dark:border-none dark:bg-dark-2 dark:group-hover:bg-dark-3" />
 
         {THEMES.map(({ name, Icon }) => (

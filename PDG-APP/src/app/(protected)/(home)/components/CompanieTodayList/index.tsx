@@ -15,7 +15,6 @@ export function CompaniesTodayList() {
 
   return (
     <div className="mt-6 rounded-xl bg-white p-6 shadow-md dark:bg-gray-800">
-      {/* Header */}
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between text-left"
@@ -26,7 +25,6 @@ export function CompaniesTodayList() {
         <span className="text-sm">{open ? "−" : "+"}</span>
       </button>
 
-      {/* Content */}
       {open && (
         <ul className="mt-4 space-y-3">
           {data.map((c) => (
