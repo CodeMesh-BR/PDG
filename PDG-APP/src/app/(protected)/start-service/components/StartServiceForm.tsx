@@ -1,9 +1,8 @@
-// src/app/(protected)/start-service/components/StartServiceForm.tsx
 "use client";
 
 import { Button } from "@/components/ui-elements/button";
 import type { UseStartServiceResult } from "../useStartService";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface StartServiceFormProps {
   onSuccess: () => void;
@@ -54,11 +53,39 @@ export default function StartServiceForm({
 
   const [imageName, setImageName] = useState("");
 
+  useEffect(() => {
+    if (!selectedCompany) return;
+
+    const company = companies.find(
+      (c) => Number(c.id) === Number(selectedCompany),
+    );
+    const defaultId = company?.default_service_id ?? null;
+    if (!defaultId) return;
+
+    const selectedIsValid = selectedService
+      ? services.some((s) => Number(s.id) === Number(selectedService))
+      : false;
+
+    const defaultIsValid = services.some(
+      (s) => Number(s.id) === Number(defaultId),
+    );
+    if (!defaultIsValid) return;
+
+    if (!selectedService || !selectedIsValid) {
+      setSelectedService(defaultId);
+    }
+  }, [
+    selectedCompany,
+    companies,
+    services,
+    selectedService,
+    setSelectedService,
+  ]);
+
   return (
     <div className="rounded-lg border bg-gray-50 p-6 dark:bg-gray-900">
       <h2 className="mb-4 text-lg font-semibold">New Service</h2>
 
-      {/* Empresa */}
       <label className="mb-1 block text-sm">Company</label>
       <select
         className="mb-4 w-full rounded border p-2 dark:text-white dark:placeholder:text-white"
@@ -76,7 +103,6 @@ export default function StartServiceForm({
         ))}
       </select>
 
-      {/* Serviço */}
       <label className="mb-1 block text-sm">Service</label>
       <select
         className="mb-4 w-full rounded border p-2 dark:text-white dark:placeholder:text-white"
@@ -95,7 +121,6 @@ export default function StartServiceForm({
         ))}
       </select>
 
-      {/* OCR */}
       <label className="mb-1 block text-sm">Vehicle plate photo</label>
 
       <div className="flex flex-col gap-1">
@@ -162,7 +187,6 @@ export default function StartServiceForm({
         )}
       </div>
 
-      {/* PLATE INPUT (APÓS OCR) */}
       {(ocrData || loadingOcr) && (
         <div className="mt-4">
           <label className="mb-1 block text-sm">Vehicle plate</label>

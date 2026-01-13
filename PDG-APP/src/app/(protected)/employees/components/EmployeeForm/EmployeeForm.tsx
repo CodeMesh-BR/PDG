@@ -244,7 +244,6 @@ export default function EmployeeForm({ onSuccess }: Props) {
         />
       </div>
 
-      {/* AVAILABILITY */}
       <div className="mt-4">
         <label className="mb-2 block font-semibold">Weekly Availability</label>
         <div className="grid grid-cols-2 gap-2 dark:text-white md:grid-cols-3">
@@ -261,7 +260,6 @@ export default function EmployeeForm({ onSuccess }: Props) {
         </div>
       </div>
 
-      {/* CONTRACT */}
       <div className="mt-4">
         <div className="w-full">
           <label className="mb-2 block font-semibold">Contract (PDF)</label>

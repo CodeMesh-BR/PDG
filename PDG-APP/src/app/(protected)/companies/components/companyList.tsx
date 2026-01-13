@@ -3,7 +3,7 @@
 import { Company } from "../useCompanies";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Star, Trash2 } from "lucide-react";
 
 interface Props {
   companies: Company[];
@@ -53,12 +53,75 @@ export default function CompanyList({ companies, onRefresh }: Props) {
     );
   }
 
+  const renderServices = (c: Company, limit: number) => {
+    const services = c.services ?? [];
+    const defaultId = c.default_service_id;
+
+    const defaultService = services.find((s) => s.id === defaultId);
+
+    if (services.length === 0) {
+      return (
+        <span className="text-xs italic text-gray-400 dark:text-gray-400">
+          No services linked
+        </span>
+      );
+    }
+
+    const sorted = [...services].sort((a, b) => {
+      const aIsDefault = a.id === defaultId ? 0 : 1;
+      const bIsDefault = b.id === defaultId ? 0 : 1;
+      return aIsDefault - bIsDefault;
+    });
+
+    const visible = sorted.slice(0, limit);
+    const remaining = sorted.length - visible.length;
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        {visible.map((s) => {
+          const isDefault = s.id === defaultId;
+
+          return (
+            <span
+              key={s.id}
+              className="flex items-center gap-1 rounded-full bg-blue-600 px-2.5 py-1 text-xs text-white"
+              title={s.description || s.type}
+            >
+              <Star
+                size={12}
+                className={
+                  isDefault ? "fill-yellow-400 text-yellow-400" : "text-white"
+                }
+              />
+              {s.type}
+            </span>
+          );
+        })}
+
+        {remaining > 0 && (
+          <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+            +{remaining}
+          </span>
+        )}
+
+        {!defaultService && defaultId ? (
+          <span className="rounded-full bg-amber-500 px-2.5 py-1 text-xs text-white">
+            Default: #{defaultId}
+          </span>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <>
-      {/* Mobile: cards */}
       <div className="space-y-3 sm:hidden">
         {companies.map((c) => {
           const name = c.display_name || c.name;
+
+          const defaultService = c.services?.find(
+            (s) => s.id === c.default_service_id,
+          );
 
           return (
             <div
@@ -105,36 +168,12 @@ export default function CompanyList({ companies, onRefresh }: Props) {
                 </div>
               </div>
 
-              <div className="mt-3">
-                {c.services && c.services.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {c.services.slice(0, 6).map((s) => (
-                      <span
-                        key={s.id}
-                        className="rounded-full bg-blue-600 px-2.5 py-1 text-xs text-white"
-                        title={s.description || s.type}
-                      >
-                        {s.type}
-                      </span>
-                    ))}
-                    {c.services.length > 6 && (
-                      <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-                        +{c.services.length - 6}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-xs italic text-gray-400 dark:text-gray-400">
-                    No services linked
-                  </span>
-                )}
-              </div>
+              <div className="mt-3">{renderServices(c, 6)}</div>
             </div>
           );
         })}
       </div>
 
-      {/* Desktop: table */}
       <div className="hidden overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:block">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
@@ -152,6 +191,10 @@ export default function CompanyList({ companies, onRefresh }: Props) {
               {companies.map((c) => {
                 const name = c.display_name || c.name;
 
+                const defaultService = c.services?.find(
+                  (s) => s.id === c.default_service_id,
+                );
+
                 return (
                   <tr
                     key={c.id}
@@ -161,11 +204,19 @@ export default function CompanyList({ companies, onRefresh }: Props) {
                       <div className="font-medium text-gray-900 dark:text-white">
                         {name}
                       </div>
+
                       {c.address && (
                         <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                           {c.address}
                         </div>
                       )}
+
+                      <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                        <span className="font-medium">Default:</span>{" "}
+                        {defaultService
+                          ? defaultService.type
+                          : `#${c.default_service_id}`}
+                      </div>
                     </td>
 
                     <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
@@ -176,30 +227,7 @@ export default function CompanyList({ companies, onRefresh }: Props) {
                       {c.phone || "-"}
                     </td>
 
-                    <td className="px-4 py-3">
-                      {c.services && c.services.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {c.services.slice(0, 3).map((s) => (
-                            <span
-                              key={s.id}
-                              className="rounded-full bg-blue-600 px-2.5 py-1 text-xs text-white"
-                              title={s.description || s.type}
-                            >
-                              {s.type}
-                            </span>
-                          ))}
-                          {c.services.length > 3 && (
-                            <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-                              +{c.services.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs italic text-gray-400 dark:text-gray-400">
-                          No services linked
-                        </span>
-                      )}
-                    </td>
+                    <td className="px-4 py-3">{renderServices(c, 3)}</td>
 
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-3">

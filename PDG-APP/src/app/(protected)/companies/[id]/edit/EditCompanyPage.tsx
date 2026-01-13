@@ -5,10 +5,12 @@ import { Button } from "@/components/ui-elements/button";
 import { useEditCompany } from "./useEditCompany";
 import { useRouter } from "next/navigation";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
+import { Star } from "lucide-react";
 
 export default function EditCompanyPage({ id }: { id: number }) {
   const { company, loading, saving, error, services, saveCompany } =
     useEditCompany(id);
+
   const [original, setOriginal] = useState({
     display_name: "",
     email: "",
@@ -26,6 +28,8 @@ export default function EditCompanyPage({ id }: { id: number }) {
   });
 
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
+  const [defaultServiceId, setDefaultServiceId] = useState<number | null>(null);
+
   const [success, setSuccess] = useState("");
   const [formError, setFormError] = useState("");
 
@@ -35,13 +39,10 @@ export default function EditCompanyPage({ id }: { id: number }) {
     /^(0[23478]\d{8}|04\d{8}|\+612\d{8}|\+613\d{8}|\+617\d{8}|\+618\d{8}|\+614\d{8})$/;
 
   const validateForm = () => {
-    if (form.name.trim().length < 2) {
+    if (form.name.trim().length < 2)
       return "Name must have at least 2 characters.";
-    }
-
-    if (!emailRegex.test(form.email.trim())) {
+    if (!emailRegex.test(form.email.trim()))
       return "Please enter a valid email address.";
-    }
 
     if (form.phone.trim()) {
       const normalized = form.phone.replace(/[^0-9+]/g, "");
@@ -50,27 +51,41 @@ export default function EditCompanyPage({ id }: { id: number }) {
       }
     }
 
+    if (!defaultServiceId) return "Please select a default service.";
+
+    if (!selectedServices.includes(defaultServiceId)) {
+      return "Default service must be included in Services.";
+    }
+
     return null;
   };
 
   useEffect(() => {
-    if (company) {
-      setForm({
-        name: company.name,
-        display_name: company.display_name || "",
-        email: company.email,
-        address: company.address || "",
-        phone: company.phone || "",
-      });
+    if (!company) return;
 
-      setOriginal({
-        display_name: company.display_name || "",
-        email: company.email || "",
-        address: company.address || "",
-      });
+    setForm({
+      name: company.name,
+      display_name: company.display_name || "",
+      email: company.email,
+      address: company.address || "",
+      phone: company.phone || "",
+    });
 
-      setSelectedServices(company.services?.map((s) => s.id) || []);
-    }
+    setOriginal({
+      display_name: company.display_name || "",
+      email: company.email || "",
+      address: company.address || "",
+    });
+
+    const serviceIds = company.services?.map((s) => s.id) || [];
+    setSelectedServices(serviceIds);
+
+    const apiDefault = (company as any).default_service_id as
+      | number
+      | undefined;
+    setDefaultServiceId(
+      apiDefault ?? (serviceIds.length ? serviceIds[0] : null),
+    );
   }, [company]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,14 +93,36 @@ export default function EditCompanyPage({ id }: { id: number }) {
     setFormError("");
   };
 
-  const handleAddService = (id: number) => {
-    if (!selectedServices.includes(id)) {
-      setSelectedServices((prev) => [...prev, id]);
-    }
+  const handleAddService = (serviceId: number) => {
+    if (!serviceId) return;
+
+    setSelectedServices((prev) => {
+      if (prev.includes(serviceId)) return prev;
+
+      const next = [...prev, serviceId];
+
+      setDefaultServiceId((current) => current ?? serviceId);
+
+      return next;
+    });
   };
 
-  const handleRemoveService = (id: number) => {
-    setSelectedServices((prev) => prev.filter((x) => x !== id));
+  const handleRemoveService = (serviceId: number) => {
+    setSelectedServices((prev) => {
+      const next = prev.filter((x) => x !== serviceId);
+
+      setDefaultServiceId((currentDefault) => {
+        if (currentDefault !== serviceId) return currentDefault;
+        return next.length ? next[0] : null;
+      });
+
+      return next;
+    });
+  };
+
+  const handleSetDefaultService = (serviceId: number) => {
+    if (!selectedServices.includes(serviceId)) return;
+    setDefaultServiceId(serviceId);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -100,6 +137,11 @@ export default function EditCompanyPage({ id }: { id: number }) {
     }
 
     const token = localStorage.getItem("token");
+    if (!token) {
+      setFormError("Unauthorized");
+      return;
+    }
+
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/companies`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -108,7 +150,6 @@ export default function EditCompanyPage({ id }: { id: number }) {
     });
 
     const existing = await res.json();
-    const lowerEmail = form.email.toLowerCase();
 
     if (form.email.toLowerCase() !== original.email.toLowerCase()) {
       const exists = existing.data.some(
@@ -151,9 +192,14 @@ export default function EditCompanyPage({ id }: { id: number }) {
       }
     }
 
+    const serviceIdsPayload = selectedServices.includes(defaultServiceId!)
+      ? selectedServices
+      : [...selectedServices, defaultServiceId!];
+
     const ok = await saveCompany({
       ...form,
-      service_ids: selectedServices,
+      service_ids: serviceIdsPayload,
+      default_service_id: defaultServiceId,
     });
 
     if (ok) {
@@ -240,6 +286,7 @@ export default function EditCompanyPage({ id }: { id: number }) {
           <select
             onChange={(e) => handleAddService(Number(e.target.value))}
             className="w-full rounded border p-2"
+            value=""
           >
             <option value="">Select a service...</option>
             {services.map((s) => (
@@ -250,20 +297,40 @@ export default function EditCompanyPage({ id }: { id: number }) {
           </select>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {selectedServices.map((id) => {
-              const s = services.find((x) => x.id === id);
+            {selectedServices.map((serviceId) => {
+              const s = services.find((x) => x.id === serviceId);
               if (!s) return null;
+
+              const isDefault = defaultServiceId === serviceId;
 
               return (
                 <span
-                  key={id}
+                  key={serviceId}
                   className="flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1 text-sm text-white"
                 >
-                  {s.type}
                   <button
                     type="button"
-                    onClick={() => handleRemoveService(id)}
+                    onClick={() => handleSetDefaultService(serviceId)}
+                    title={isDefault ? "Default service" : "Set as default"}
+                    className="flex items-center"
+                  >
+                    <Star
+                      size={14}
+                      className={
+                        isDefault
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-white"
+                      }
+                    />
+                  </button>
+
+                  {s.type}
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveService(serviceId)}
                     className="text-white hover:text-gray-200"
+                    title="Remove service"
                   >
                     ✕
                   </button>
@@ -271,6 +338,12 @@ export default function EditCompanyPage({ id }: { id: number }) {
               );
             })}
           </div>
+
+          {!defaultServiceId && (
+            <p className="mt-2 text-xs text-gray-500">
+              A default service is required.
+            </p>
+          )}
         </div>
 
         <Button

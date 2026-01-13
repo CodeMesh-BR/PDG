@@ -24,10 +24,8 @@ export function Header() {
   };
 
   const resolvePageTitle = (pathname: string) => {
-    // 1. Se a rota existir exatamente, retorna
     if (pageTitles[pathname]) return pageTitles[pathname];
 
-    // 2. Trata rotas dinâmicas (edit)
     if (pathname.match(/^\/companies\/[^/]+\/edit$/)) {
       return pageTitles["/companies/[id]/edit"];
     }
@@ -44,7 +42,6 @@ export function Header() {
       return pageTitles["/start-service/[id]/edit"];
     }
 
-    // fallback
     return "Dashboard";
   };
 
@@ -90,8 +87,6 @@ export function Header() {
         </div> */}
 
         <ThemeToggleSwitch />
-
-        {/* <Notification /> */}
 
         <div className="shrink-0">
           <UserInfo />

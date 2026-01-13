@@ -39,7 +39,7 @@ export default function ServicesReportPage() {
       r.performed_at.slice(0, 10),
       r.company_name,
       r.display_name ?? r.full_name ?? "—",
-      r.car_plate ?? "—", // NOVO
+      r.car_plate ?? "—",
       r.service_type,
       r.total_quantity,
       Number(r.total_amount).toFixed(2),
@@ -62,7 +62,6 @@ export default function ServicesReportPage() {
     a.click();
   };
 
-  /* ---------------- PDF ---------------- */
   const exportPDF = async () => {
     if (!report?.data) return;
 
@@ -120,7 +119,7 @@ export default function ServicesReportPage() {
         r.performed_at.slice(0, 10),
         r.company_name,
         r.display_name ?? r.full_name ?? "—",
-        r.car_plate ?? "—", // NOVO
+        r.car_plate ?? "—",
         r.service_type,
         r.total_quantity,
         Number(r.total_amount).toFixed(2),
@@ -154,11 +153,9 @@ export default function ServicesReportPage() {
     <div className="mx-auto max-w-6xl p-8">
       <h1 className="mb-8 text-3xl font-bold">Services Report</h1>
 
-      {/* FILTER CARD */}
       <div className="mb-10 rounded-xl border bg-gray-50 p-6 dark:bg-gray-900">
         <h2 className="mb-4 text-xl font-semibold">Filters</h2>
 
-        {/* employee */}
         <label className="text-sm font-medium">Employee</label>
         <select
           className="mb-4 w-full rounded border bg-white p-2 dark:bg-gray-800"
@@ -178,7 +175,6 @@ export default function ServicesReportPage() {
           ))}
         </select>
 
-        {/* company */}
         <label className="text-sm font-medium">Company</label>
         <select
           className="mb-4 w-full rounded border bg-white p-2 dark:bg-gray-800"
@@ -198,7 +194,6 @@ export default function ServicesReportPage() {
           ))}
         </select>
 
-        {/* Dates */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium">From</label>
@@ -235,7 +230,6 @@ export default function ServicesReportPage() {
 
       {report && (
         <>
-          {/* summary */}
           <div className="mb-6 rounded-xl border bg-white p-6 shadow-md dark:bg-gray-800">
             <h2 className="mb-2 text-lg font-semibold">Summary</h2>
             <p>
@@ -252,7 +246,6 @@ export default function ServicesReportPage() {
             </div>
           </div>
 
-          {/* table */}
           <div className="overflow-auto rounded-xl border shadow-lg">
             <table className="w-full text-sm">
               <thead className="bg-gray-200 text-left text-gray-800 dark:bg-gray-700 dark:text-white">
@@ -284,7 +277,6 @@ export default function ServicesReportPage() {
                 ))}
               </tbody>
 
-              {/* FOOTER TOTALS */}
               <tfoot>
                 <tr className="bg-gray-100 text-left font-semibold dark:bg-gray-700">
                   <td className="p-3">TOTAL</td>
