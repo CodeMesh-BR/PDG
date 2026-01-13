@@ -37,14 +37,12 @@ export default function ProfilePage() {
   return (
     <div className="flex items-center justify-center p-6 dark:from-gray-900 dark:to-gray-950">
       <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl ring-1 ring-gray-200 transition-all duration-200 dark:bg-gray-800 dark:ring-gray-700">
-        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
             My Profile
           </h1>
         </div>
 
-        {/* Info Card */}
         <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-900/40">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
             Account Information
@@ -79,7 +77,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Change Password */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
             Change Password

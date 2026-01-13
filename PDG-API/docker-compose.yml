@@ -16,12 +16,9 @@ services:
     image: postgres:16-alpine
     container_name: pg-api
     environment:
-      DB_CONNECTION: pgsql
-      DB_HOST: pdg-detailing.c8z6ucg28z7t.us-east-1.rds.amazonaws.com
-      DB_PORT: 5432
-      DB_DATABASE: pdgdetailing
-      DB_USERNAME: codemesh
-      DB_PASSWORD: C0d3M3$h100%
+      POSTGRES_DB: pdg_dash
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d pdg_dash"]
       interval: 5s

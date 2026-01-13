@@ -39,5 +39,5 @@ export async function fetchUsers() {
   });
 
   const data = await res.json();
-  return data.data ?? []; // lista paginada
+  return data.data ?? [];
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { useServicesCatalog } from "../../services-catalog/useServicesCatalog";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
+import { Star } from "lucide-react";
 
 interface Props {
   onSuccess: () => void;
@@ -18,8 +19,10 @@ export default function CompanyForm({ onSuccess }: Props) {
     phone: "",
   });
 
-  const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const { services } = useServicesCatalog();
+
+  const [selectedServices, setSelectedServices] = useState<number[]>([]);
+  const [defaultServiceId, setDefaultServiceId] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -40,37 +43,60 @@ export default function CompanyForm({ onSuccess }: Props) {
     }
 
     const rawPhone = form.phone.trim();
-
     if (rawPhone) {
       const normalized = rawPhone
         .replace(/[^\d+]/g, "")
         .replace(/\p{Separator}/gu, "");
-
-      console.log("NORM:", normalized);
-      console.log("LEN:", normalized.length);
       if (!auPhoneRegex.test(normalized)) {
         return "Invalid Australian phone format. Example: 0412 345 678 or +61 2 9876 5432.";
       }
     }
-    console.log("RAW:", rawPhone);
+
+    if (!defaultServiceId) {
+      return "Please select a default service.";
+    }
+    if (!selectedServices.includes(defaultServiceId)) {
+      return "Default service must be included in Services.";
+    }
 
     return null;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-
     if (error) setError("");
   };
 
   const handleAddService = (id: number) => {
-    if (!selectedServices.includes(id)) {
-      setSelectedServices((prev) => [...prev, id]);
-    }
+    if (!id) return;
+
+    setSelectedServices((prev) => {
+      if (prev.includes(id)) return prev;
+
+      const next = [...prev, id];
+
+      setDefaultServiceId((current) => current ?? id);
+
+      return next;
+    });
   };
 
   const handleRemoveService = (id: number) => {
-    setSelectedServices((prev) => prev.filter((s) => s !== id));
+    setSelectedServices((prev) => {
+      const next = prev.filter((s) => s !== id);
+
+      setDefaultServiceId((currentDefault) => {
+        if (currentDefault !== id) return currentDefault;
+        return next.length ? next[0] : null;
+      });
+
+      return next;
+    });
+  };
+
+  const handleSetDefaultService = (id: number) => {
+    if (!selectedServices.includes(id)) return;
+    setDefaultServiceId(id);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -130,6 +156,10 @@ export default function CompanyForm({ onSuccess }: Props) {
         return;
       }
 
+      const serviceIdsPayload = selectedServices.includes(defaultServiceId!)
+        ? selectedServices
+        : [...selectedServices, defaultServiceId!];
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/companies`, {
         method: "POST",
         headers: {
@@ -139,7 +169,8 @@ export default function CompanyForm({ onSuccess }: Props) {
         },
         body: JSON.stringify({
           ...form,
-          service_ids: selectedServices,
+          service_ids: serviceIdsPayload,
+          default_service_id: defaultServiceId,
         }),
       });
 
@@ -156,6 +187,8 @@ export default function CompanyForm({ onSuccess }: Props) {
         phone: "",
       });
       setSelectedServices([]);
+      setDefaultServiceId(null);
+
       setSuccess("Company created successfully!");
       onSuccess();
     } catch (err: any) {
@@ -172,7 +205,6 @@ export default function CompanyForm({ onSuccess }: Props) {
     >
       <h2 className="text-lg font-semibold">Add New Company</h2>
 
-      {/* ALERTAS */}
       {error && <FormAlert type="error" message={error} />}
       {success && <FormAlert type="success" message={success} />}
 
@@ -216,13 +248,15 @@ export default function CompanyForm({ onSuccess }: Props) {
         />
       </div>
 
-      {/* Services multi-select */}
       <div>
-        <label className="mb-1 block font-medium">Services</label>
+        <label className="mb-1 block font-medium">
+          Services (select at least one)
+        </label>
 
         <select
           onChange={(e) => handleAddService(Number(e.target.value))}
           className="w-full rounded border p-2 dark:text-white"
+          value=""
         >
           <option value="">Select a service...</option>
           {services.map((s) => (
@@ -236,12 +270,32 @@ export default function CompanyForm({ onSuccess }: Props) {
           {selectedServices.map((id) => {
             const service = services.find((s) => s.id === id);
             if (!service) return null;
+
+            const isDefault = defaultServiceId === id;
+
             return (
               <span
                 key={id}
                 className="flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1 text-sm text-white"
               >
+                <button
+                  type="button"
+                  onClick={() => handleSetDefaultService(id)}
+                  title={isDefault ? "Default service" : "Set as default"}
+                  className="flex items-center"
+                >
+                  <Star
+                    size={14}
+                    className={
+                      isDefault
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-white"
+                    }
+                  />
+                </button>
+
                 {service.type}
+
                 <button
                   type="button"
                   onClick={() => handleRemoveService(id)}
@@ -253,6 +307,12 @@ export default function CompanyForm({ onSuccess }: Props) {
             );
           })}
         </div>
+
+        {!defaultServiceId && (
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            A default service is required to create a company.
+          </p>
+        )}
       </div>
 
       <Button label={loading ? "Saving..." : "Save Company"} type="submit" />

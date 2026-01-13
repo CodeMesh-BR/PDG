@@ -1,4 +1,4 @@
-// src/app/(protected)/start-service/useStartService.ts
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,14 +17,11 @@ import {
 } from "./api";
 
 export interface UseStartServiceResult {
-  // logs
   logs: ServiceLog[];
   total: number;
   loadingLogs: boolean;
   errorLogs: string | null;
   refreshLogs: () => Promise<void>;
-
-  // companies / services
   companies: Company[];
   services: Service[];
   selectedCompany: number | null;
@@ -33,16 +30,12 @@ export interface UseStartServiceResult {
   loadingServices: boolean;
   setSelectedCompany: (id: number | null) => void;
   setSelectedService: (id: number | null) => void;
-
-  // OCR
   vehicleImage: File | null;
   ocrData: OcrResponse | null;
   loadingOcr: boolean;
-  plate: string;
+  plate?: string;
   setPlate: (value: string) => void;
   handleImageChange: (file: File | null) => Promise<void>;
-
-  // start service
   saving: boolean;
   duplicateWarning: boolean;
   setDuplicateWarning: (value: boolean) => void;
@@ -51,9 +44,6 @@ export interface UseStartServiceResult {
 }
 
 export function useStartService(): UseStartServiceResult {
-  /* ------------------------------------------
-     LOGS DO DIA
-  -------------------------------------------*/
   const [logs, setLogs] = useState<ServiceLog[]>([]);
   const [total, setTotal] = useState(0);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -77,9 +67,6 @@ export function useStartService(): UseStartServiceResult {
     void refreshLogs();
   }, []);
 
-  /* ------------------------------------------
-     COMPANIES + SERVICES
-  -------------------------------------------*/
   const [companies, setCompanies] = useState<Company[]>([]);
   const [services, setServices] = useState<Service[]>([]);
 
@@ -134,9 +121,6 @@ export function useStartService(): UseStartServiceResult {
     void load();
   }, [selectedCompany]);
 
-  /* ------------------------------------------
-     OCR
-  -------------------------------------------*/
   const [vehicleImage, setVehicleImage] = useState<File | null>(null);
   const [ocrData, setOcrData] = useState<OcrResponse | null>(null);
   const [loadingOcr, setLoadingOcr] = useState(false);
@@ -162,15 +146,12 @@ export function useStartService(): UseStartServiceResult {
       }
 
       setOcrData(data);
-      setPlate(data.plate ?? "");
+      setPlate(data.plate !== '' ? data.plate : data.debug_raw_google || '');
     } finally {
       setLoadingOcr(false);
     }
   };
 
-  /* ------------------------------------------
-     START SERVICE
-  -------------------------------------------*/
   const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -201,7 +182,6 @@ export function useStartService(): UseStartServiceResult {
       return { success: true };
     }
 
-    // erro genérico: poderia setar erro local aqui se quiser
     return;
   };
 

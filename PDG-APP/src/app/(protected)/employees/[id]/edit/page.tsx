@@ -42,7 +42,6 @@ export default function EditEmployeePage() {
       {success && <FormAlert type="success" message={success} />}
 
       <div className="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-gray-900">
-        {/* SIMPLE FIELDS */}
         <LabeledInput
           label="Display Name"
           value={user.display_name}
@@ -75,7 +74,6 @@ export default function EditEmployeePage() {
           onChange={(v) => handleChange("address", v)}
         />
 
-        {/* ROLE SELECT */}
         <div>
           <label className="mb-1 block font-medium">Role</label>
           <select
@@ -90,7 +88,6 @@ export default function EditEmployeePage() {
           </select>
         </div>
 
-        {/* AVAILABILITY */}
         <div className="mt-3">
           <label className="mb-1 block font-medium">Weekly Availability</label>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
@@ -107,7 +104,6 @@ export default function EditEmployeePage() {
           </div>
         </div>
 
-        {/* CONTRACT */}
         <div className="mt-4">
           <label className="mb-1 block font-medium">Contract (PDF)</label>
 
@@ -129,7 +125,6 @@ export default function EditEmployeePage() {
           />
         </div>
 
-        {/* PASSWORD CHANGE */}
         <div className="mt-6 rounded-lg border bg-gray-50 p-4 dark:bg-gray-900">
           <p className="mb-2 font-medium">Change Password</p>
 
