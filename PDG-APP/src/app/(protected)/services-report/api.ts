@@ -3,6 +3,7 @@
 export type ReportFilters = {
   user_id?: number;
   company_id?: number;
+  plate?: string;
   date_from?: string;
   date_to?: string;
   date?: string;
