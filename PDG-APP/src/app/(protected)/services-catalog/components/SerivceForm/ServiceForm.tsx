@@ -13,6 +13,7 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
     type: "",
     description: "",
     value: "",
+    cost_value: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,11 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
     const numericValue = Number(form.value);
     if (!numericValue || numericValue <= 0) {
       return "Value must be a number greater than zero.";
+    }
+
+    const numericCostValue = Number(form.cost_value);
+    if (!numericCostValue || numericCostValue <= 0) {
+      return "Cost value must be a number greater than zero.";
     }
 
     return null;
@@ -71,7 +77,7 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create service");
 
-      setForm({ type: "", description: "", value: "" });
+      setForm({ type: "", description: "", value: "", cost_value: "" });
       setSuccess("Service created successfully!");
 
       if (onSuccess) onSuccess();
@@ -108,6 +114,17 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
           step="0.01"
           placeholder="Value *"
           value={form.value}
+          onChange={handleChange}
+          className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
+          required
+        />
+
+        <input
+          name="cost_value"
+          type="number"
+          step="0.01"
+          placeholder="Cost Value *"
+          value={form.cost_value}
           onChange={handleChange}
           className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
           required

@@ -17,6 +17,7 @@ export interface Service {
   type: string;
   description: string;
   value: string;
+  cost_value?: string;
 }
 
 export interface Paginated<T> {
@@ -58,6 +59,7 @@ export interface ServiceLog {
     type: string;
     description: string;
     value: string;
+    cost_value?: string;
   };
 }
 

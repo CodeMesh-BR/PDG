@@ -16,6 +16,7 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
     type: "",
     description: "",
     value: "",
+    cost_value: "",
   });
 
   const [localError, setLocalError] = useState("");
@@ -27,6 +28,7 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
         type: service.type,
         description: service.description,
         value: service.value,
+        cost_value: service.cost_value ?? "",
       });
     }
   }, [service]);
@@ -42,6 +44,11 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
     const numericValue = Number(form.value);
     if (!numericValue || numericValue <= 0) {
       return "Value must be a number greater than zero.";
+    }
+
+    const numericCostValue = Number(form.cost_value);
+    if (!numericCostValue || numericCostValue <= 0) {
+      return "Cost value must be a number greater than zero.";
     }
 
     return null;
@@ -67,7 +74,7 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
     const ok = await saveService(form);
 
     if (ok) {
-      router.push("/services");
+      router.push("/services-catalog");
     }
   };
 
@@ -118,8 +125,21 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
 
         <input
           name="value"
+          type="number"
+          step="0.01"
           placeholder="Value"
           value={form.value}
+          onChange={handleChange}
+          className="w-full rounded border p-2"
+          required
+        />
+
+        <input
+          name="cost_value"
+          type="number"
+          step="0.01"
+          placeholder="Cost Value"
+          value={form.cost_value}
           onChange={handleChange}
           className="w-full rounded border p-2"
           required

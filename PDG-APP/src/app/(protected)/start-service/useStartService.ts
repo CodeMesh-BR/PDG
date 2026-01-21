@@ -11,7 +11,7 @@ import {
 import {
   fetchCompanies,
   fetchCompanyServices,
-  fetchTodayLogs,
+  fetchServiceLogs,
   sendOcrImage,
   startServiceLog,
 } from "./api";
@@ -22,6 +22,8 @@ export interface UseStartServiceResult {
   loadingLogs: boolean;
   errorLogs: string | null;
   refreshLogs: () => Promise<void>;
+  selectedDate: string;
+  setSelectedDate: (value: string) => void;
   companies: Company[];
   services: Service[];
   selectedCompany: number | null;
@@ -44,6 +46,9 @@ export interface UseStartServiceResult {
 }
 
 export function useStartService(): UseStartServiceResult {
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
   const [logs, setLogs] = useState<ServiceLog[]>([]);
   const [total, setTotal] = useState(0);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -53,7 +58,7 @@ export function useStartService(): UseStartServiceResult {
     try {
       setLoadingLogs(true);
       setErrorLogs(null);
-      const result = await fetchTodayLogs();
+      const result = await fetchServiceLogs(selectedDate);
       setLogs(result.data);
       setTotal(result.total);
     } catch {
@@ -65,7 +70,7 @@ export function useStartService(): UseStartServiceResult {
 
   useEffect(() => {
     void refreshLogs();
-  }, []);
+  }, [selectedDate]);
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -205,6 +210,8 @@ export function useStartService(): UseStartServiceResult {
     loadingLogs,
     errorLogs,
     refreshLogs,
+    selectedDate,
+    setSelectedDate,
 
     companies,
     services,
