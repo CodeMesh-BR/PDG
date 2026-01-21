@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('type', 150)->unique();
             $table->string('description', 500);
             $table->decimal('value', 10, 2);
+            $table->decimal('cost_value', 10, 2);
             $table->timestamps();
         });
     }
