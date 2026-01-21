@@ -124,7 +124,6 @@ export default function ServiceCatalogList({ services, onRefresh }: Props) {
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Description</th>
                 <th className="px-4 py-3 font-medium">Value</th>
-                <th className="px-4 py-3 font-medium">Companies</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
@@ -145,31 +144,6 @@ export default function ServiceCatalogList({ services, onRefresh }: Props) {
 
                   <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                     ${s.value}
-                  </td>
-
-                  <td className="px-4 py-3">
-                    {s.companies && s.companies.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {s.companies.slice(0, 3).map((c) => (
-                          <span
-                            key={c.id}
-                            className="rounded-full bg-gray-200 px-2.5 py-1 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-200"
-                            title={c.display_name || c.name}
-                          >
-                            {c.display_name || c.name}
-                          </span>
-                        ))}
-                        {s.companies.length > 3 && (
-                          <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-                            +{s.companies.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs italic text-gray-400 dark:text-gray-400">
-                        -
-                      </span>
-                    )}
                   </td>
 
                   <td className="px-4 py-3">

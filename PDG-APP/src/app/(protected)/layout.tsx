@@ -35,15 +35,21 @@ export default function ProtectedLayout({
         if (!res.ok) throw new Error("Unauthorized");
 
         const data = await res.json();
-        const role = data?.data?.role;
+        const role = (data?.data?.role || "").toLowerCase();
+        localStorage.setItem("role", role);
 
         if (!canAccess(pathname, role)) {
-          router.replace("/unauthorized");
+          if (role === "detailer") {
+            router.replace("/start-service");
+          } else {
+            router.replace("/unauthorized");
+          }
         } else {
           setAuthorized(true);
         }
       } catch (err) {
         localStorage.removeItem("token");
+        localStorage.removeItem("role");
         router.replace("/auth/sign-in");
       }
     };
@@ -67,7 +73,9 @@ function canAccess(path: string, role: string | null): boolean {
 
   if (role === "admin" || role === "supervisor") return true;
 
-  const detailerAllowed = ["/start-service", "/services-report", "/reports"];
+  if (role === "detailer") {
+    return path.startsWith("/start-service");
+  }
 
-  return detailerAllowed.some((route) => path.startsWith(route));
+  return false;
 }
