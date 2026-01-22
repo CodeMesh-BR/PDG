@@ -51,8 +51,10 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       }
 
       localStorage.setItem('token', result.access_token);
+      const role = (result.user?.role || "").toLowerCase();
+      localStorage.setItem("role", role);
 
-      router.push('/');
+      router.push(role === "detailer" ? "/start-service" : "/");
     } catch (err: any) {
       setError(err.message);
     } finally {

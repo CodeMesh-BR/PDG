@@ -77,11 +77,13 @@ export function UserInfo() {
       }
 
       localStorage.removeItem("token");
+      localStorage.removeItem("role");
       setIsOpen(false);
       router.replace("/auth/sign-in");
     } catch (err) {
       console.error("Logout failed:", err);
       localStorage.removeItem("token");
+      localStorage.removeItem("role");
       router.replace("/auth/sign-in");
     } finally {
       setLoadingLogout(false);

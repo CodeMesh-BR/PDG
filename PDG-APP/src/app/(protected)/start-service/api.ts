@@ -123,14 +123,14 @@ export async function fetchCompanyServices(
   return res.data?.data?.services ?? [];
 }
 
-export async function fetchTodayLogs(): Promise<{
+export async function fetchServiceLogs(date: string): Promise<{
   total: number;
   data: ServiceLog[];
 }> {
-  const today = new Date().toISOString().slice(0, 10);
+  const day = date.slice(0, 10);
 
   const res = await request<Paginated<ServiceLog>>(
-    `${API_URL}/service-logs?date=${today}`,
+    `${API_URL}/service-logs?date=${day}`,
     {
       headers: authHeaders(),
     }

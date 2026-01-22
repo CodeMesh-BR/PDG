@@ -43,10 +43,11 @@ export default function ServicesReportPage() {
       r.service_type,
       r.total_quantity,
       Number(r.total_amount).toFixed(2),
+      Number(r.total_cost_amount ?? 0).toFixed(2),
     ]);
 
     const csv = [
-      ["Date", "Company", "Employee", "Plate", "Service", "Quantity", "Total"],
+      ["Date", "Company", "Employee", "Plate", "Service", "Quantity", "Total", "Cost"],
       ...rows,
     ]
       .map((r) => r.join(","))
@@ -111,7 +112,7 @@ export default function ServicesReportPage() {
     autoTable(pdf, {
       startY: 185,
       head: [
-        ["Date", "Company", "Employee", "Plate", "Service", "Qty", "Total"],
+        ["Date", "Company", "Employee", "Plate", "Service", "Qty", "Total", "Cost"],
       ],
 
       theme: "grid",
@@ -123,6 +124,7 @@ export default function ServicesReportPage() {
         r.service_type,
         r.total_quantity,
         Number(r.total_amount).toFixed(2),
+      Number(r.total_cost_amount ?? 0).toFixed(2),
       ]),
     });
 
@@ -141,6 +143,11 @@ export default function ServicesReportPage() {
       `Total Amount: $${Number(report.grand_totals.total_amount).toFixed(2)}`,
       40,
       endY + 70,
+    );
+    pdf.text(
+      `Total Cost: $${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}`,
+      40,
+      endY + 90,
     );
 
     const dateSlug = new Date().toISOString().split("T")[0];
@@ -194,6 +201,19 @@ export default function ServicesReportPage() {
           ))}
         </select>
 
+        <label className="text-sm font-medium">Plate</label>
+        <input
+          className="mb-4 w-full rounded border bg-white p-2 dark:bg-gray-800"
+          value={filters.plate ?? ""}
+          onChange={(e) =>
+            setFilters((f) => ({
+              ...f,
+              plate: e.target.value || undefined,
+            }))
+          }
+          placeholder="Search by plate"
+        />
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium">From</label>
@@ -239,6 +259,10 @@ export default function ServicesReportPage() {
               Total revenue:{" "}
               <b>${Number(report.grand_totals.total_amount).toFixed(2)}</b>
             </p>
+            <p>
+              Total cost:{" "}
+              <b>${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}</b>
+            </p>
 
             <div className="mt-4 flex gap-4">
               <Button label="Export CSV" onClick={exportCSV} />
@@ -257,6 +281,7 @@ export default function ServicesReportPage() {
                   <th className="p-3">Service</th>
                   <th className="p-3 text-center">Qty</th>
                   <th className="p-3 text-right">Total</th>
+                  <th className="p-3 text-right">Cost</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,6 +297,9 @@ export default function ServicesReportPage() {
                     <td className="p-3 text-center">{r.total_quantity}</td>
                     <td className="p-3 text-right">
                       ${Number(r.total_amount).toFixed(2)}
+                    </td>
+                    <td className="p-3 text-right">
+                      ${Number(r.total_cost_amount ?? 0).toFixed(2)}
                     </td>
                   </tr>
                 ))}
@@ -290,6 +318,9 @@ export default function ServicesReportPage() {
                   <td className="p-3 text-right">
                     ${Number(report.grand_totals.total_amount).toFixed(2)}
                   </td>
+                  <td className="p-3 text-right">
+                    ${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}
+                  </td>
                 </tr>
               </tfoot>
             </table>
@@ -299,3 +330,5 @@ export default function ServicesReportPage() {
     </div>
   );
 }
+
+

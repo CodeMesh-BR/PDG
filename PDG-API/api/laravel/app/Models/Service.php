@@ -12,11 +12,13 @@ class Service extends Model
     protected $fillable = [
         'type',
         'description',
-        'value'
+        'value',
+        'cost_value',
     ];
 
     protected $casts = [
         'value' => 'decimal:2',
+        'cost_value' => 'decimal:2',
     ];
 
     public function users()

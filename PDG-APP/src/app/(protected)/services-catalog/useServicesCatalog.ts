@@ -5,6 +5,7 @@ export interface Service {
   type: string;
   description: string;
   value: string;
+  cost_value?: string;
   created_at: string;
   companies?: { id: number; name: string; display_name: string }[];
 }
