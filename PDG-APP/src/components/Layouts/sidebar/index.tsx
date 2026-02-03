@@ -143,9 +143,12 @@ export function Sidebar() {
                           (() => {
                             const href =
                               "url" in item
-                                ? item.url + ""
+                                ? (item as { url: string }).url + ""
                                 : "/" +
-                                  item.title.toLowerCase().split(" ").join("-");
+                                  (item as { title: string }).title
+                                    .toLowerCase()
+                                    .split(" ")
+                                    .join("-");
 
                             return (
                               <MenuItem
@@ -159,7 +162,7 @@ export function Sidebar() {
                                   aria-hidden="true"
                                 />
 
-                                <span>{item.title}</span>
+                                <span>{(item as { title: string }).title}</span>
                               </MenuItem>
                             );
                           })()
