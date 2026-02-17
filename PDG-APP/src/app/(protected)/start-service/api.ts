@@ -10,7 +10,7 @@ import {
   StartServiceResponse,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/proxy";
 
 function authHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
