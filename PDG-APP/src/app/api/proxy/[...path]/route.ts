@@ -16,12 +16,6 @@ const HOP_BY_HOP_HEADERS = new Set([
   "content-length",
 ]);
 
-type ProxyContext = {
-  params: {
-    path?: string[];
-  };
-};
-
 function getApiBaseUrl(): string | null {
   const base = process.env.API_BASE_URL?.trim();
   if (!base) return null;
@@ -38,7 +32,10 @@ function copyHeaders(headers: Headers): Headers {
   return result;
 }
 
-async function handleProxy(request: NextRequest, context: ProxyContext): Promise<NextResponse> {
+async function handleProxy(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+): Promise<NextResponse> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     return NextResponse.json(
@@ -47,7 +44,8 @@ async function handleProxy(request: NextRequest, context: ProxyContext): Promise
     );
   }
 
-  const path = (context.params.path ?? []).join("/");
+  const params = await context.params;
+  const path = (params.path ?? []).join("/");
   const targetUrl = `${baseUrl}/${path}${request.nextUrl.search}`;
 
   const headers = copyHeaders(request.headers);
@@ -83,30 +81,51 @@ async function handleProxy(request: NextRequest, context: ProxyContext): Promise
   }
 }
 
-export async function GET(request: NextRequest, context: ProxyContext) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+) {
   return handleProxy(request, context);
 }
 
-export async function POST(request: NextRequest, context: ProxyContext) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+) {
   return handleProxy(request, context);
 }
 
-export async function PUT(request: NextRequest, context: ProxyContext) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+) {
   return handleProxy(request, context);
 }
 
-export async function PATCH(request: NextRequest, context: ProxyContext) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+) {
   return handleProxy(request, context);
 }
 
-export async function DELETE(request: NextRequest, context: ProxyContext) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+) {
   return handleProxy(request, context);
 }
 
-export async function OPTIONS(request: NextRequest, context: ProxyContext) {
+export async function OPTIONS(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+) {
   return handleProxy(request, context);
 }
 
-export async function HEAD(request: NextRequest, context: ProxyContext) {
+export async function HEAD(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+) {
   return handleProxy(request, context);
 }
