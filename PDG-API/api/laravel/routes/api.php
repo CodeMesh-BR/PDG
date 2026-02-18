@@ -11,10 +11,6 @@ use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\DashboardController;
 
-
-// Preflight CORS (opcional)
-Route::options('{any}', fn() => response()->noContent())->where('any', '.*');
-
 // Auth (público)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);

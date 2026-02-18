@@ -37,17 +37,28 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
         body: JSON.stringify({
           email: data.email,
           password: data.password,
         }),
       });
 
-      const result = await response.json();
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {
+        result = null;
+      }
 
       if (!response.ok) {
-        throw new Error(result.message || 'Erro ao fazer login');
+        throw new Error(result?.message || 'Erro ao fazer login');
+      }
+      if (!result?.access_token) {
+        throw new Error('Resposta inválida da API no login.');
       }
 
       localStorage.setItem('token', result.access_token);
