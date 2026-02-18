@@ -19,18 +19,26 @@ export function useForgotPassword() {
         `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
           body: JSON.stringify({ email }),
         }
       );
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Unable to reset password.");
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {
+        result = null;
       }
 
-      setSuccess(result.message);
+      if (!response.ok) {
+        throw new Error(result?.message || "Unable to reset password.");
+      }
+
+      setSuccess(result?.message ?? "Password reset request sent.");
     } catch (err: any) {
       setError(err.message);
     } finally {

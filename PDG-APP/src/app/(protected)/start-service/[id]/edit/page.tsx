@@ -6,6 +6,7 @@ import {
   fetchServiceLog,
   updateServiceLog,
   fetchCompanyServices,
+  fetchCompanies,
 } from "../../api";
 import { ServiceLog, Company, Service } from "../../types";
 import { Button } from "@/components/ui-elements/button";
@@ -45,9 +46,7 @@ export default function EditServicePage() {
   }, [id]);
 
   useEffect(() => {
-    fetch("/api/companies")
-      .then((r) => r.json())
-      .then((r) => setCompanyList(r.data));
+    void fetchCompanies().then((res) => setCompanyList(res.data));
   }, []);
 
   useEffect(() => {
