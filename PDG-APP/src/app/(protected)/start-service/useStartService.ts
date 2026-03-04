@@ -146,12 +146,13 @@ export function useStartService(): UseStartServiceResult {
 
       if (status !== 200 || !data) {
         setOcrData(null);
-        setPlate("");
         return;
       }
 
       setOcrData(data);
-      setPlate(data.plate !== '' ? data.plate : data.debug_raw_google || '');
+      setPlate(data.plate !== "" ? data.plate : data.debug_raw_google || "");
+    } catch {
+      setOcrData(null);
     } finally {
       setLoadingOcr(false);
     }

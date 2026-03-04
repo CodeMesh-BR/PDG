@@ -57,23 +57,33 @@ export async function sendOcrImage(
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const res = await fetch(`${API_URL}/plate-ocr`, {
-    method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
-  });
-
-  let data: OcrResponse | null = null;
   try {
-    data = (await res.json()) as OcrResponse;
-  } catch {
-    data = null;
-  }
+    const res = await fetch(`${API_URL}/plate-ocr`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: form,
+    });
 
-  return {
-    status: res.status,
-    data,
-  };
+    let data: OcrResponse | null = null;
+    try {
+      data = (await res.json()) as OcrResponse;
+    } catch {
+      data = null;
+    }
+
+    return {
+      status: res.status,
+      data,
+    };
+  } catch {
+    return {
+      status: 0,
+      data: null,
+    };
+  }
 }
 
 export async function startServiceLog(
