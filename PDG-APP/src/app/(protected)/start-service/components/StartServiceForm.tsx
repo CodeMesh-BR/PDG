@@ -36,6 +36,7 @@ export default function StartServiceForm({
     confirmStart,
     plate,
     setPlate,
+    ocrError,
   } = service;
 
   const submit = async () => {
@@ -188,21 +189,30 @@ export default function StartServiceForm({
       </div>
 
       <div className="mt-4">
-        <label className="mb-1 block text-sm">Vehicle plate</label>
+        {imageName && (
+          <>
+            <label className="mb-1 block text-sm">Vehicle plate</label>
+            <input
+              type="text"
+              value={plate}
+              onChange={(e) => setPlate(e.target.value.toUpperCase())}
+              placeholder="Enter or correct the plate"
+              className="w-full rounded border p-2 dark:bg-gray-800 dark:text-white"
+              disabled={loadingOcr}
+            />
 
-        <input
-          type="text"
-          value={plate}
-          onChange={(e) => setPlate(e.target.value.toUpperCase())}
-          placeholder="Enter or correct the plate"
-          className="w-full rounded border p-2 dark:bg-gray-800 dark:text-white"
-          disabled={loadingOcr}
-        />
+            {ocrError && (
+              <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
+                ⚠️ Could not detect the plate. Please enter it manually.
+              </p>
+            )}
 
-        {ocrData?.plate && (
-          <p className="mt-1 text-xs text-gray-500">
-            OCR detected: <b>{ocrData.plate}</b>
-          </p>
+            {!ocrError && ocrData?.plate && (
+              <p className="mt-1 text-xs text-gray-500">
+                OCR detected: <b>{ocrData.plate}</b>
+              </p>
+            )}
+          </>
         )}
       </div>
 

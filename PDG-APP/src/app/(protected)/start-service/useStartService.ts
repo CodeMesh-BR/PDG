@@ -1,13 +1,7 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Company,
-  Service,
-  ServiceLog,
-  OcrResponse,
-} from "./types";
+import { Company, Service, ServiceLog, OcrResponse } from "./types";
 import {
   fetchCompanies,
   fetchCompanyServices,
@@ -41,8 +35,12 @@ export interface UseStartServiceResult {
   saving: boolean;
   duplicateWarning: boolean;
   setDuplicateWarning: (value: boolean) => void;
-  handleStart: () => Promise<{ success?: boolean; needsConfirmation?: boolean } | void>;
+  handleStart: () => Promise<{
+    success?: boolean;
+    needsConfirmation?: boolean;
+  } | void>;
   confirmStart: () => Promise<void>;
+  ocrError: boolean;
 }
 
 export function useStartService(): UseStartServiceResult {
@@ -79,10 +77,10 @@ export function useStartService(): UseStartServiceResult {
   const [loadingServices, setLoadingServices] = useState(false);
 
   const [selectedCompany, setSelectedCompanyState] = useState<number | null>(
-    null
+    null,
   );
   const [selectedService, setSelectedServiceState] = useState<number | null>(
-    null
+    null,
   );
 
   const setSelectedCompany = (id: number | null) => {
@@ -130,9 +128,11 @@ export function useStartService(): UseStartServiceResult {
   const [ocrData, setOcrData] = useState<OcrResponse | null>(null);
   const [loadingOcr, setLoadingOcr] = useState(false);
   const [plate, setPlate] = useState("");
+  const [ocrError, setOcrError] = useState(false);
 
   const handleImageChange = async (file: File | null) => {
     setVehicleImage(file);
+    setOcrError(false);
 
     if (!file) {
       setOcrData(null);
@@ -146,6 +146,7 @@ export function useStartService(): UseStartServiceResult {
 
       if (status !== 200 || !data) {
         setOcrData(null);
+        setOcrError(true);
         return;
       }
 
@@ -153,6 +154,7 @@ export function useStartService(): UseStartServiceResult {
       setPlate(data.plate !== "" ? data.plate : data.debug_raw_google || "");
     } catch {
       setOcrData(null);
+      setOcrError(true);
     } finally {
       setLoadingOcr(false);
     }
@@ -235,5 +237,6 @@ export function useStartService(): UseStartServiceResult {
     setDuplicateWarning,
     handleStart,
     confirmStart,
+    ocrError,
   };
 }
