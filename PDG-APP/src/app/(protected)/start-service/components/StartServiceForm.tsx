@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui-elements/button";
 import type { UseStartServiceResult } from "../useStartService";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface StartServiceFormProps {
   onSuccess: () => void;
@@ -53,7 +53,7 @@ export default function StartServiceForm({
   };
 
   const [imageName, setImageName] = useState("");
-  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputId = "plate-photo-input";
 
   const handleFilePicked = (file: File | null) => {
     setImageName(file?.name ?? "");
@@ -131,10 +131,9 @@ export default function StartServiceForm({
       <label className="mb-1 block text-sm">Vehicle plate photo</label>
 
       <div className="flex flex-col gap-1">
-        <button
-          type="button"
+        <label
+          htmlFor={galleryInputId}
           className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
-          onClick={() => galleryInputRef.current?.click()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -150,13 +149,13 @@ export default function StartServiceForm({
             <circle cx="12" cy="13" r="4" />
           </svg>
           <span>Take photo</span>
-        </button>
+        </label>
 
         <input
-          ref={galleryInputRef}
+          id={galleryInputId}
           type="file"
           accept="image/*"
-          className="hidden"
+          className="sr-only"
           onChange={(e) => {
             const file = e.target.files?.[0] ?? null;
             handleFilePicked(file);
