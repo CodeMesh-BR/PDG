@@ -23,10 +23,22 @@ function normalizePlateValue(input: string): string {
 function extractPlateCandidate(rawText: string): string {
   if (!rawText) return "";
 
-  const matches = rawText.toUpperCase().match(/[A-Z0-9-]{4,10}/g) ?? [];
-  if (matches.length === 0) return "";
+  const upper = rawText.toUpperCase();
+  const directMatches = upper.match(/[A-Z0-9-]{4,10}/g) ?? [];
+  const parts = upper.match(/[A-Z0-9]{1,10}/g) ?? [];
 
-  const scored = matches
+  const joinedMatches: string[] = [];
+  for (let start = 0; start < parts.length; start++) {
+    let noSep = "";
+    let withSep = "";
+    for (let end = start; end < parts.length && end < start + 3; end++) {
+      noSep += parts[end];
+      withSep = withSep === "" ? parts[end] : `${withSep}-${parts[end]}`;
+      joinedMatches.push(noSep, withSep);
+    }
+  }
+
+  const scored = [...directMatches, ...joinedMatches]
     .map((token) => normalizePlateValue(token))
     .filter((token) => {
       const plain = token.replace(/-/g, "");
@@ -40,12 +52,16 @@ function extractPlateCandidate(rawText: string): string {
     .sort((a, b) => {
       const plainA = a.replace(/-/g, "");
       const plainB = b.replace(/-/g, "");
-      const scoreA = Math.abs(7 - plainA.length);
-      const scoreB = Math.abs(7 - plainB.length);
+      const scoreA =
+        (/[A-Z]/.test(plainA) && /\d/.test(plainA) ? 10 : 0) -
+        Math.abs(7 - plainA.length);
+      const scoreB =
+        (/[A-Z]/.test(plainB) && /\d/.test(plainB) ? 10 : 0) -
+        Math.abs(7 - plainB.length);
       return scoreA - scoreB;
     });
 
-  return scored[0] ?? "";
+  return scored.at(-1) ?? "";
 }
 
 function loadImage(file: File): Promise<HTMLImageElement> {
@@ -80,21 +96,39 @@ async function prepareImageForOcr(file: File): Promise<File> {
   if (typeof window === "undefined") return file;
   if (!file.type.startsWith("image/")) return file;
 
-  let image: HTMLImageElement;
+  let width = 0;
+  let height = 0;
+  let drawSource: CanvasImageSource;
+  let bitmap: ImageBitmap | null = null;
+
   try {
-    image = await loadImage(file);
+    const image = await loadImage(file);
+    width = image.naturalWidth || image.width;
+    height = image.naturalHeight || image.height;
+    drawSource = image;
   } catch {
-    return file;
+    if (typeof createImageBitmap !== "function") return file;
+    try {
+      bitmap = await createImageBitmap(file);
+      width = bitmap.width;
+      height = bitmap.height;
+      drawSource = bitmap;
+    } catch {
+      return file;
+    }
   }
 
-  const width = image.naturalWidth || image.width;
-  const height = image.naturalHeight || image.height;
-  if (width <= 0 || height <= 0) return file;
+  if (width <= 0 || height <= 0) {
+    if (bitmap) bitmap.close();
+    return file;
+  }
 
   const scale = Math.min(1, OCR_MAX_DIMENSION / Math.max(width, height));
   const targetWidth = Math.max(1, Math.round(width * scale));
   const targetHeight = Math.max(1, Math.round(height * scale));
 
+  const isHeic =
+    /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
   const isCommonType =
     file.type === "image/jpeg" ||
     file.type === "image/jpg" ||
@@ -105,7 +139,8 @@ async function prepareImageForOcr(file: File): Promise<File> {
     height > OCR_MAX_DIMENSION ||
     file.size > OCR_MAX_SOURCE_BYTES;
 
-  if (!needsResize && isCommonType) {
+  if (!needsResize && isCommonType && !isHeic) {
+    if (bitmap) bitmap.close();
     return file;
   }
 
@@ -114,9 +149,13 @@ async function prepareImageForOcr(file: File): Promise<File> {
   canvas.height = targetHeight;
 
   const ctx = canvas.getContext("2d");
-  if (!ctx) return file;
+  if (!ctx) {
+    if (bitmap) bitmap.close();
+    return file;
+  }
 
-  ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+  ctx.drawImage(drawSource, 0, 0, targetWidth, targetHeight);
+  if (bitmap) bitmap.close();
 
   const blob = await canvasToJpegBlob(canvas, OCR_OUTPUT_QUALITY);
   canvas.width = 0;

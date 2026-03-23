@@ -342,7 +342,7 @@ class PlateOcrController extends Controller
         if ($len >= 5 && $len <= 8) $score += 12;
         if (str_contains($candidate, '-')) $score += 2;
 
-        if (preg_match('/^(?:[A-Z]{3}\d{4}|[A-Z]{3}\d[A-Z]\d{2}|[A-Z]{2}\d{2}[A-Z]{2}|\d{2}[A-Z]{2}\d{2}|\d{2}\d{2}[A-Z]{2})$/', $plain)) {
+        if (preg_match('/^(?:[A-Z]{3}\d{4}|[A-Z]{3}\d[A-Z]\d{2}|[A-Z]{2}\d{2}[A-Z]{2}|\d{2}[A-Z]{2}\d{2}|\d{2}\d{2}[A-Z]{2}|\d[A-Z]{3}\d{3}|\d{1,2}[A-Z]{2,3}\d{2,4})$/', $plain)) {
             $score += 40;
         } elseif (preg_match('/^[A-Z0-9]{5,8}$/', $plain)) {
             $score += 8;
@@ -545,6 +545,8 @@ class PlateOcrController extends Controller
             '/[A-Z]{2}\s*[- ]?\s*\d{2}\s*[- ]?\s*[A-Z]{2}/',
             '/\d{2}\s*[- ]?\s*[A-Z]{2}\s*[- ]?\s*\d{2}/',
             '/\d{2}\s*[- ]?\s*\d{2}\s*[- ]?\s*[A-Z]{2}/',
+            '/\d\s*[- ]?\s*[A-Z]{3}\s*[- ]?\s*\d{3}/',
+            '/\d{1,2}\s*[- ]?\s*[A-Z]{2,3}\s*[- ]?\s*\d{2,4}/',
         ];
 
         foreach ($patterns as $pattern) {
@@ -557,6 +559,20 @@ class PlateOcrController extends Controller
         preg_match_all('/[A-Z0-9\-]{4,10}/', $text, $genericMatches);
         foreach (($genericMatches[0] ?? []) as $match) {
             $rawCandidates[] = $match;
+        }
+
+        preg_match_all('/[A-Z0-9]{1,10}/', $text, $splitMatches);
+        $parts = $splitMatches[0] ?? [];
+        $partsCount = count($parts);
+        for ($start = 0; $start < $partsCount; $start++) {
+            $noSep = '';
+            $withSep = '';
+            for ($end = $start; $end < $partsCount && $end < $start + 3; $end++) {
+                $noSep .= $parts[$end];
+                $withSep = $withSep === '' ? $parts[$end] : $withSep . '-' . $parts[$end];
+                $rawCandidates[] = $noSep;
+                $rawCandidates[] = $withSep;
+            }
         }
 
         if (!$rawCandidates) return '';
