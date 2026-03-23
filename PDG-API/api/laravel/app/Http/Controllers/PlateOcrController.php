@@ -18,14 +18,50 @@ class PlateOcrController extends Controller
     public function readPlate(Request $http)
     {
         try {
-            $http->validate(['image' => 'required|image|max:10240']);
+            // Allow up to 20MB for high-resolution mobile camera captures, then resize if necessary.
+            $http->validate(['image' => 'required|image|max:20480']);
 
             $image = $http->file('image');
             $imageContent = file_get_contents($image->getRealPath());
+            $imageSize = $image->getSize() ?: strlen($imageContent);
 
-            $size = @getimagesize($image->getRealPath());
+            $size = @getimagesizefromstring($imageContent);
             $imgW = (int)($size[0] ?? 0);
             $imgH = (int)($size[1] ?? 0);
+
+            if ($imageSize > 10 * 1024 * 1024 && function_exists('imagecreatefromstring')) {
+                Log::info('OCR image from camera is large; attempting resize', [
+                    'original_size' => $imageSize,
+                    'original_width' => $imgW,
+                    'original_height' => $imgH,
+                ]);
+
+                $srcImage = @imagecreatefromstring($imageContent);
+                if ($srcImage !== false && $imgW > 0 && $imgH > 0) {
+                    $maxDimension = 2048;
+                    if ($imgW > $maxDimension || $imgH > $maxDimension) {
+                        $scale = min($maxDimension / $imgW, $maxDimension / $imgH);
+                        $newW = max(1, (int)round($imgW * $scale));
+                        $newH = max(1, (int)round($imgH * $scale));
+
+                        $resized = imagecreatetruecolor($newW, $newH);
+                        imagecopyresampled($resized, $srcImage, 0, 0, 0, 0, $newW, $newH, $imgW, $imgH);
+
+                        ob_start();
+                        imagejpeg($resized, null, 80);
+                        $jpegContent = ob_get_clean();
+
+                        if ($jpegContent !== false) {
+                            $imageContent = $jpegContent;
+                            $imgW = $newW;
+                            $imgH = $newH;
+                        }
+
+                        imagedestroy($resized);
+                    }
+                    imagedestroy($srcImage);
+                }
+            }
 
             $client = new ImageAnnotatorClient(['transport' => 'rest']);
 
@@ -48,6 +84,9 @@ class PlateOcrController extends Controller
 
             $responses = $batchRes->getResponses();
             if (empty($responses) || $responses[0]->hasError()) {
+                if (!empty($responses) && $responses[0]->hasError()) {
+                    Log::warning('OCR Google Vision error', ['error' => $responses[0]->getError()]);
+                }
                 return response()->json(['plate' => '', 'score' => 0], Response::HTTP_OK);
             }
 
