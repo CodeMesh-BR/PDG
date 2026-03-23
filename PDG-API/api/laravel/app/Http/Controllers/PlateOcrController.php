@@ -19,9 +19,29 @@ class PlateOcrController extends Controller
     {
         try {
             // Allow up to 20MB for high-resolution mobile camera captures, then resize if necessary.
-            $http->validate(['image' => 'required|image|max:20480']);
+            $http->validate(['image' => 'required|file|max:20480']);
 
             $image = $http->file('image');
+            if (!$image || !$image->isValid()) {
+                return response()->json([
+                    'plate' => '',
+                    'score' => 0,
+                    'error' => 'invalid_image_upload',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $mimeType = strtolower((string)($image->getMimeType() ?? ''));
+            $clientMime = strtolower((string)($image->getClientMimeType() ?? ''));
+            $extension = strtolower((string)($image->getClientOriginalExtension() ?? ''));
+
+            if (!$this->isAllowedUploadMime($mimeType, $clientMime, $extension)) {
+                return response()->json([
+                    'plate' => '',
+                    'score' => 0,
+                    'error' => 'unsupported_image_type',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
             $imageContent = file_get_contents($image->getRealPath());
             $imageSize = $image->getSize() ?: strlen($imageContent);
 
@@ -98,10 +118,32 @@ class PlateOcrController extends Controller
                 $fullText = (string)($textAnn[0]->getDescription() ?? '');
             }
 
+            if ($imgW <= 0 || $imgH <= 0) {
+                $inferredBounds = $this->inferImageBoundsFromTextAnnotations($textAnn);
+                if ($inferredBounds) {
+                    $imgW = $inferredBounds['x2'];
+                    $imgH = $inferredBounds['y2'];
+                }
+            }
+
+            $imgW = max(1, $imgW);
+            $imgH = max(1, $imgH);
+
             $vehicleBox = $this->detectVehicleBox($res, $imgW, $imgH);
             $plateZone = $this->plateZoneBox($vehicleBox, $imgW, $imgH);
 
             $plate = $this->pickPlateByLargestLine($textAnn, $plateZone);
+            if ($plate === '') {
+                $plate = $this->pickPlateByLargestLine($textAnn, [
+                    'x1' => 0,
+                    'y1' => 0,
+                    'x2' => $imgW,
+                    'y2' => $imgH,
+                ]);
+            }
+            if ($plate === '') {
+                $plate = $this->pickPlateFromFullText($fullText);
+            }
 
             return response()->json([
                 'plate' => $plate,
@@ -369,5 +411,87 @@ class PlateOcrController extends Controller
             'x2' => (int)max($xs),
             'y2' => (int)max($ys),
         ];
+    }
+
+    private function isAllowedUploadMime(string $mimeType, string $clientMime, string $extension): bool
+    {
+        $allowedMimes = [
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/webp',
+            'image/heic',
+            'image/heif',
+            'image/heic-sequence',
+            'image/heif-sequence',
+        ];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+
+        foreach ([$mimeType, $clientMime] as $mime) {
+            if ($mime === '') continue;
+            if (str_starts_with($mime, 'image/')) return true;
+            if ($mime === 'application/octet-stream') continue;
+            if (in_array($mime, $allowedMimes, true)) return true;
+        }
+
+        if ($extension !== '' && in_array($extension, $allowedExtensions, true)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function inferImageBoundsFromTextAnnotations($textAnn): ?array
+    {
+        if (!$textAnn || count($textAnn) < 2) return null;
+
+        $maxX = 0;
+        $maxY = 0;
+
+        for ($i = 1; $i < count($textAnn); $i++) {
+            $poly = $textAnn[$i]->getBoundingPoly();
+            if (!$poly || !$poly->getVertices()) continue;
+
+            $box = $this->absPolyToBox($poly->getVertices());
+            $maxX = max($maxX, (int)$box['x2']);
+            $maxY = max($maxY, (int)$box['y2']);
+        }
+
+        if ($maxX <= 0 || $maxY <= 0) {
+            return null;
+        }
+
+        return ['x1' => 0, 'y1' => 0, 'x2' => $maxX, 'y2' => $maxY];
+    }
+
+    private function pickPlateFromFullText(string $fullText): string
+    {
+        if ($fullText === '') return '';
+
+        preg_match_all('/[A-Z0-9\-]{4,10}/', strtoupper($fullText), $matches);
+        $tokens = $matches[0] ?? [];
+
+        if (!$tokens) return '';
+
+        $best = '';
+        $bestScore = PHP_INT_MAX;
+
+        foreach ($tokens as $token) {
+            $norm = $this->normalizeToken($token);
+            if ($norm === '') continue;
+
+            $plain = str_replace('-', '', $norm);
+            if (strlen($plain) < 4 || strlen($plain) > 10) continue;
+            if (!preg_match('/[A-Z]/', $plain)) continue;
+            if (!preg_match('/\d/', $plain)) continue;
+
+            $score = abs(7 - strlen($plain));
+            if ($score < $bestScore) {
+                $best = $norm;
+                $bestScore = $score;
+            }
+        }
+
+        return $best;
     }
 }

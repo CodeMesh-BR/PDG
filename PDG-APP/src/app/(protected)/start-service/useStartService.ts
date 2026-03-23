@@ -10,6 +10,40 @@ import {
   startServiceLog,
 } from "./api";
 
+function normalizePlateValue(input: string): string {
+  const cleaned = input.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+  const compact = cleaned.replace(/-+/g, "-").replace(/^-|-$/g, "");
+  return compact;
+}
+
+function extractPlateCandidate(rawText: string): string {
+  if (!rawText) return "";
+
+  const matches = rawText.toUpperCase().match(/[A-Z0-9-]{4,10}/g) ?? [];
+  if (matches.length === 0) return "";
+
+  const scored = matches
+    .map((token) => normalizePlateValue(token))
+    .filter((token) => {
+      const plain = token.replace(/-/g, "");
+      return (
+        plain.length >= 4 &&
+        plain.length <= 10 &&
+        /[A-Z]/.test(plain) &&
+        /\d/.test(plain)
+      );
+    })
+    .sort((a, b) => {
+      const plainA = a.replace(/-/g, "");
+      const plainB = b.replace(/-/g, "");
+      const scoreA = Math.abs(7 - plainA.length);
+      const scoreB = Math.abs(7 - plainB.length);
+      return scoreA - scoreB;
+    });
+
+  return scored[0] ?? "";
+}
+
 export interface UseStartServiceResult {
   logs: ServiceLog[];
   total: number;
@@ -146,14 +180,20 @@ export function useStartService(): UseStartServiceResult {
 
       if (status !== 200 || !data) {
         setOcrData(null);
+        setPlate("");
         setOcrError(true);
         return;
       }
 
+      const detectedPlate = normalizePlateValue(data.plate ?? "");
+      const fallbackPlate = extractPlateCandidate(data.debug_raw_google ?? "");
+
       setOcrData(data);
-      setPlate(data.plate !== "" ? data.plate : data.debug_raw_google || "");
+      setPlate(detectedPlate || fallbackPlate);
+      setOcrError(detectedPlate === "" && fallbackPlate === "");
     } catch {
       setOcrData(null);
+      setPlate("");
       setOcrError(true);
     } finally {
       setLoadingOcr(false);
