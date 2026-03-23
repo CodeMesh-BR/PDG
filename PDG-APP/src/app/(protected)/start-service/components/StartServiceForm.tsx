@@ -37,6 +37,7 @@ export default function StartServiceForm({
     plate,
     setPlate,
     ocrError,
+    ocrDebugId,
   } = service;
 
   const submit = async () => {
@@ -210,9 +211,10 @@ export default function StartServiceForm({
             />
 
             {ocrError && (
-              <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
-                Warning: Could not detect the plate automatically. Please enter it manually.
-              </p>
+              <div className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
+                <p>Warning: Could not detect the plate automatically. Please enter it manually.</p>
+                {ocrDebugId && <p>Request ID: {ocrDebugId}</p>}
+              </div>
             )}
 
             {!ocrError && ocrData?.plate && (

@@ -34,6 +34,7 @@ export interface OcrResponse {
   debug_raw_google?: string;
   debug_vehicle_box?: any;
   debug_plate_zone?: any;
+  debug_request_id?: string;
 
   error?: string;
   message?: string;

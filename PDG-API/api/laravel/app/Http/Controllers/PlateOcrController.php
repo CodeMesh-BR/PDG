@@ -17,7 +17,11 @@ class PlateOcrController extends Controller
 {
     public function readPlate(Request $http)
     {
+        $requestId = 'n/a';
+
         try {
+            $requestId = substr(bin2hex(random_bytes(8)), 0, 12);
+
             // Allow up to 20MB for high-resolution mobile camera captures, then resize if necessary.
             $http->validate(['image' => 'required|file|max:20480']);
 
@@ -27,6 +31,7 @@ class PlateOcrController extends Controller
                     'plate' => '',
                     'score' => 0,
                     'error' => 'invalid_image_upload',
+                    'debug_request_id' => $requestId,
                 ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
@@ -46,15 +51,27 @@ class PlateOcrController extends Controller
                     'plate' => '',
                     'score' => 0,
                     'error' => 'unsupported_image_type',
+                    'debug_request_id' => $requestId,
                 ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
-            $maxDimension = 2048;
-            $shouldResizeBySize = $imageSize > 5 * 1024 * 1024;
+            Log::info('OCR request received', [
+                'request_id' => $requestId,
+                'mime' => $mimeType,
+                'client_mime' => $clientMime,
+                'ext' => $extension,
+                'size' => $imageSize,
+                'width' => $imgW,
+                'height' => $imgH,
+            ]);
+
+            $maxDimension = 3072;
+            $shouldResizeBySize = $imageSize > 8 * 1024 * 1024;
             $shouldResizeByDimension = $imgW > $maxDimension || $imgH > $maxDimension;
 
             if (($shouldResizeBySize || $shouldResizeByDimension) && function_exists('imagecreatefromstring')) {
                 Log::info('OCR image needs resize before Vision', [
+                    'request_id' => $requestId,
                     'original_size' => $imageSize,
                     'original_width' => $imgW,
                     'original_height' => $imgH,
@@ -93,13 +110,14 @@ class PlateOcrController extends Controller
             $img = (new Image())->setContent($imageContent);
 
             $featTxt = (new Feature())->setType(Feature\Type::TEXT_DETECTION);
+            $featDoc = (new Feature())->setType(Feature\Type::DOCUMENT_TEXT_DETECTION);
             $featObj = (new Feature())->setType(Feature\Type::OBJECT_LOCALIZATION);
 
             $ctx = (new ImageContext())->setLanguageHints([env('GCV_LOCALE_HINT', 'en')]);
 
             $annotReq = (new AnnotateImageRequest())
                 ->setImage($img)
-                ->setFeatures([$featTxt, $featObj])
+                ->setFeatures([$featTxt, $featDoc, $featObj])
                 ->setImageContext($ctx);
 
             $batchReq = (new BatchAnnotateImagesRequest())->setRequests([$annotReq]);
@@ -110,9 +128,16 @@ class PlateOcrController extends Controller
             $responses = $batchRes->getResponses();
             if (empty($responses) || $responses[0]->hasError()) {
                 if (!empty($responses) && $responses[0]->hasError()) {
-                    Log::warning('OCR Google Vision error', ['error' => $responses[0]->getError()]);
+                    Log::warning('OCR Google Vision error', [
+                        'request_id' => $requestId,
+                        'error' => $responses[0]->getError(),
+                    ]);
                 }
-                return response()->json(['plate' => '', 'score' => 0], Response::HTTP_OK);
+                return response()->json([
+                    'plate' => '',
+                    'score' => 0,
+                    'debug_request_id' => $requestId,
+                ], Response::HTTP_OK);
             }
 
             $res = $responses[0];
@@ -121,6 +146,18 @@ class PlateOcrController extends Controller
             $fullText = '';
             if ($textAnn && count($textAnn) > 0) {
                 $fullText = (string)($textAnn[0]->getDescription() ?? '');
+            }
+            $docText = '';
+            $fullTextAnn = $res->getFullTextAnnotation();
+            if ($fullTextAnn) {
+                $docText = trim((string)($fullTextAnn->getText() ?? ''));
+            }
+            if ($docText !== '') {
+                if ($fullText === '') {
+                    $fullText = $docText;
+                } elseif (strpos($docText, $fullText) === false) {
+                    $fullText = trim($fullText . "\n" . $docText);
+                }
             }
 
             if ($imgW <= 0 || $imgH <= 0) {
@@ -150,16 +187,36 @@ class PlateOcrController extends Controller
                 $plate = $this->pickPlateFromFullText($fullText);
             }
 
+            if ($plate === '') {
+                Log::info('OCR finished without plate', [
+                    'request_id' => $requestId,
+                    'mime' => $mimeType,
+                    'size' => $imageSize,
+                    'width' => $imgW,
+                    'height' => $imgH,
+                    'full_text_excerpt' => substr($fullText, 0, 160),
+                ]);
+            }
+
             return response()->json([
                 'plate' => $plate,
                 'score' => $plate !== '' ? 200 : 0,
                 'debug_raw_google' => $fullText,
                 'debug_vehicle_box' => $vehicleBox,
                 'debug_plate_zone' => $plateZone,
+                'debug_request_id' => $requestId,
             ], Response::HTTP_OK);
         } catch (\Throwable $e) {
-            Log::error('OCR error: ' . $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine()]);
-            return response()->json(['error' => 'internal_error', 'message' => $e->getMessage()], 500);
+            Log::error('OCR error: ' . $e->getMessage(), [
+                'request_id' => $requestId,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return response()->json([
+                'error' => 'internal_error',
+                'message' => $e->getMessage(),
+                'debug_request_id' => $requestId,
+            ], 500);
         }
     }
 

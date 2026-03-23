@@ -10,9 +10,9 @@ import {
   startServiceLog,
 } from "./api";
 
-const OCR_MAX_DIMENSION = 2048;
+const OCR_MAX_DIMENSION = 3072;
 const OCR_MAX_SOURCE_BYTES = 5 * 1024 * 1024;
-const OCR_OUTPUT_QUALITY = 0.82;
+const OCR_OUTPUT_QUALITY = 0.9;
 
 function normalizePlateValue(input: string): string {
   const cleaned = input.toUpperCase().replace(/[^A-Z0-9-]/g, "");
@@ -201,6 +201,7 @@ export interface UseStartServiceResult {
   } | void>;
   confirmStart: () => Promise<void>;
   ocrError: boolean;
+  ocrDebugId: string | null;
 }
 
 export function useStartService(): UseStartServiceResult {
@@ -289,6 +290,7 @@ export function useStartService(): UseStartServiceResult {
   const [loadingOcr, setLoadingOcr] = useState(false);
   const [plate, setPlate] = useState("");
   const [ocrError, setOcrError] = useState(false);
+  const [ocrDebugId, setOcrDebugId] = useState<string | null>(null);
 
   const handleImageChange = async (file: File | null) => {
     setOcrError(false);
@@ -297,6 +299,7 @@ export function useStartService(): UseStartServiceResult {
       setVehicleImage(null);
       setOcrData(null);
       setPlate("");
+      setOcrDebugId(null);
       return;
     }
 
@@ -317,6 +320,7 @@ export function useStartService(): UseStartServiceResult {
       if (status !== 200 || !data) {
         setOcrData(null);
         setPlate("");
+        setOcrDebugId(data?.debug_request_id ?? null);
         setOcrError(true);
         return;
       }
@@ -326,10 +330,12 @@ export function useStartService(): UseStartServiceResult {
 
       setOcrData(data);
       setPlate(detectedPlate || fallbackPlate);
+      setOcrDebugId(data.debug_request_id ?? null);
       setOcrError(detectedPlate === "" && fallbackPlate === "");
     } catch {
       setOcrData(null);
       setPlate("");
+      setOcrDebugId(null);
       setOcrError(true);
     } finally {
       setLoadingOcr(false);
@@ -414,5 +420,6 @@ export function useStartService(): UseStartServiceResult {
     handleStart,
     confirmStart,
     ocrError,
+    ocrDebugId,
   };
 }
