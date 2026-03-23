@@ -53,7 +53,6 @@ export default function StartServiceForm({
   };
 
   const [imageName, setImageName] = useState("");
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handleFilePicked = (file: File | null) => {
@@ -132,63 +131,26 @@ export default function StartServiceForm({
       <label className="mb-1 block text-sm">Vehicle plate photo</label>
 
       <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
-            onClick={() => cameraInputRef.current?.click()}
+        <button
+          type="button"
+          className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
+          onClick={() => galleryInputRef.current?.click()}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 7h3l2-3h8l2 3h3v12H3z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-            <span>Take photo</span>
-          </button>
-
-          <button
-            type="button"
-            className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
-            onClick={() => galleryInputRef.current?.click()}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
-              <circle cx="8.5" cy="10" r="1.5" />
-              <path d="M21 15l-5-5L5 19" />
-            </svg>
-            <span>Choose from gallery</span>
-          </button>
-        </div>
-
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0] ?? null;
-            handleFilePicked(file);
-            e.currentTarget.value = "";
-          }}
-        />
+            <path d="M3 7h3l2-3h8l2 3h3v12H3z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+          <span>Take photo</span>
+        </button>
 
         <input
           ref={galleryInputRef}

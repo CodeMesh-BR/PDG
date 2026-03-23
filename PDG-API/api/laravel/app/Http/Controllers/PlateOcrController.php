@@ -34,20 +34,20 @@ class PlateOcrController extends Controller
             $clientMime = strtolower((string)($image->getClientMimeType() ?? ''));
             $extension = strtolower((string)($image->getClientOriginalExtension() ?? ''));
 
-            if (!$this->isAllowedUploadMime($mimeType, $clientMime, $extension)) {
-                return response()->json([
-                    'plate' => '',
-                    'score' => 0,
-                    'error' => 'unsupported_image_type',
-                ], Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
-
             $imageContent = file_get_contents($image->getRealPath());
             $imageSize = $image->getSize() ?: strlen($imageContent);
 
             $size = @getimagesizefromstring($imageContent);
             $imgW = (int)($size[0] ?? 0);
             $imgH = (int)($size[1] ?? 0);
+
+            if (!$this->isAllowedUploadMime($mimeType, $clientMime, $extension) && ($imgW <= 0 || $imgH <= 0)) {
+                return response()->json([
+                    'plate' => '',
+                    'score' => 0,
+                    'error' => 'unsupported_image_type',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
 
             if ($imageSize > 10 * 1024 * 1024 && function_exists('imagecreatefromstring')) {
                 Log::info('OCR image from camera is large; attempting resize', [
@@ -195,7 +195,7 @@ class PlateOcrController extends Controller
         usort($tokens, fn($a, $b) => $a['cy'] <=> $b['cy']);
 
         $zoneH = max(1, $plateZone['y2'] - $plateZone['y1']);
-        $lineTol = $zoneH * 0.075;
+        $lineTol = max(8, (int)round($zoneH * 0.075));
 
         $lines = [];
         $cur = [
@@ -237,58 +237,117 @@ class PlateOcrController extends Controller
 
         $lines[] = $cur;
 
-        $bestLine = null;
-        $bestKey = null;
+        $bestCandidate = '';
+        $bestScore = PHP_INT_MIN;
+        $bestArea = 0;
 
         foreach ($lines as $ln) {
-            $avgH = $ln['sumH'] / max(1, $ln['count']);
-            $key = [$ln['sumArea'], $avgH, $ln['count']];
+            $lineTokens = $ln['tokens'];
+            usort($lineTokens, fn($a, $b) => $a['cx'] <=> $b['cx']);
 
-            if ($bestKey === null || $this->cmpKey($key, $bestKey) > 0) {
-                $bestKey = $key;
-                $bestLine = $ln;
-            }
-        }
+            $avgW = 0;
+            foreach ($lineTokens as $t) $avgW += $t['w'];
+            $avgW = $avgW / max(1, count($lineTokens));
 
-        if (!$bestLine || empty($bestLine['tokens'])) return '';
+            $candidates = $this->buildLineCandidates($lineTokens, $avgW);
+            foreach ($candidates as $candidate) {
+                $score = $this->scorePlateCandidate($candidate);
+                if ($score < 0) continue;
 
-        $lineTokens = $bestLine['tokens'];
-        usort($lineTokens, fn($a, $b) => $a['cx'] <=> $b['cx']);
-
-        $out = '';
-        $prev = null;
-
-        $avgW = 0;
-        foreach ($lineTokens as $t) $avgW += $t['w'];
-        $avgW = $avgW / max(1, count($lineTokens));
-
-        foreach ($lineTokens as $t) {
-            if ($prev) {
-                $gap = $t['box']['x1'] - $prev['box']['x2'];
-                if ($gap > $avgW * 0.35 && !str_ends_with($out, '-') && !str_starts_with($t['text'], '-')) {
-                    $out .= '-';
+                $lineArea = (int)($ln['sumArea'] ?? 0);
+                if (
+                    $score > $bestScore ||
+                    ($score === $bestScore && $lineArea > $bestArea)
+                ) {
+                    $bestScore = $score;
+                    $bestArea = $lineArea;
+                    $bestCandidate = $candidate;
                 }
             }
-            $out .= $t['text'];
-            $prev = $t;
         }
 
-        $out = strtoupper($out);
-        $out = preg_replace('/[^A-Z0-9\-]/', '', $out);
-        $out = preg_replace('/\-+/', '-', $out);
-        $out = trim($out, '-');
-
-        $plain = str_replace('-', '', $out);
-        if (strlen($plain) < 4 || strlen($plain) > 10) return '';
-
-        return $out;
+        return $bestCandidate;
     }
 
-    private function cmpKey(array $a, array $b): int
+    private function buildLineCandidates(array $lineTokens, float $avgW): array
     {
-        if ($a[0] !== $b[0]) return $a[0] <=> $b[0];
-        if ($a[1] !== $b[1]) return $a[1] <=> $b[1];
-        return $a[2] <=> $b[2];
+        if (!$lineTokens) return [];
+
+        $rawCandidates = [];
+        $count = count($lineTokens);
+        $maxWindow = min(5, $count);
+
+        for ($start = 0; $start < $count; $start++) {
+            $joinedNoSep = '';
+            $joinedGapAware = '';
+
+            for ($end = $start; $end < $count && $end < $start + $maxWindow; $end++) {
+                $tokenText = (string)($lineTokens[$end]['text'] ?? '');
+                if ($tokenText === '') continue;
+
+                if ($end === $start) {
+                    $joinedNoSep = $tokenText;
+                    $joinedGapAware = $tokenText;
+                } else {
+                    $prev = $lineTokens[$end - 1];
+                    $gap = (int)$lineTokens[$end]['box']['x1'] - (int)$prev['box']['x2'];
+                    $addDash = $gap > ($avgW * 0.35);
+
+                    $joinedNoSep .= $tokenText;
+                    $joinedGapAware .= ($addDash ? '-' : '') . $tokenText;
+                }
+
+                $rawCandidates[] = $joinedNoSep;
+                $rawCandidates[] = $joinedGapAware;
+            }
+        }
+
+        $unique = [];
+        foreach ($rawCandidates as $raw) {
+            $clean = $this->cleanPlateString($raw);
+            if ($clean === '') continue;
+            $unique[$clean] = true;
+        }
+
+        return array_keys($unique);
+    }
+
+    private function cleanPlateString(string $value): string
+    {
+        $value = strtoupper($value);
+        $value = preg_replace('/[^A-Z0-9\-]/', '', $value);
+        $value = preg_replace('/\-+/', '-', $value);
+        $value = trim($value, '-');
+        return $value;
+    }
+
+    private function scorePlateCandidate(string $candidate): int
+    {
+        $candidate = $this->cleanPlateString($candidate);
+        if ($candidate === '') return -1;
+
+        $plain = str_replace('-', '', $candidate);
+        $len = strlen($plain);
+
+        if ($len < 4 || $len > 10) return -1;
+        if (!preg_match('/[A-Z]/', $plain) || !preg_match('/\d/', $plain)) return -1;
+
+        $score = 0;
+        $score += max(0, 10 - abs(7 - $len)) * 4;
+        if ($len >= 5 && $len <= 8) $score += 12;
+        if (str_contains($candidate, '-')) $score += 2;
+
+        if (preg_match('/^(?:[A-Z]{3}\d{4}|[A-Z]{3}\d[A-Z]\d{2}|[A-Z]{2}\d{2}[A-Z]{2}|\d{2}[A-Z]{2}\d{2}|\d{2}\d{2}[A-Z]{2})$/', $plain)) {
+            $score += 40;
+        } elseif (preg_match('/^[A-Z0-9]{5,8}$/', $plain)) {
+            $score += 8;
+        }
+
+        if (preg_match('/(.)\1{4,}/', $plain)) {
+            $score -= 20;
+        }
+
+        return $score;
     }
 
     private function normalizeToken(string $s): string
@@ -468,26 +527,47 @@ class PlateOcrController extends Controller
     {
         if ($fullText === '') return '';
 
-        preg_match_all('/[A-Z0-9\-]{4,10}/', strtoupper($fullText), $matches);
-        $tokens = $matches[0] ?? [];
+        $text = strtoupper($fullText);
+        $text = preg_replace('/[^A-Z0-9\-\s]/', ' ', $text);
+        $text = preg_replace('/\s+/', ' ', trim($text));
 
-        if (!$tokens) return '';
+        if ($text === '') return '';
+
+        $rawCandidates = [];
+        $patterns = [
+            '/[A-Z]{3}\s*[- ]?\s*\d{4}/',
+            '/[A-Z]{3}\s*[- ]?\s*\d\s*[- ]?\s*[A-Z]\s*[- ]?\s*\d{2}/',
+            '/[A-Z]{2}\s*[- ]?\s*\d{2}\s*[- ]?\s*[A-Z]{2}/',
+            '/\d{2}\s*[- ]?\s*[A-Z]{2}\s*[- ]?\s*\d{2}/',
+            '/\d{2}\s*[- ]?\s*\d{2}\s*[- ]?\s*[A-Z]{2}/',
+        ];
+
+        foreach ($patterns as $pattern) {
+            preg_match_all($pattern, $text, $matches);
+            foreach (($matches[0] ?? []) as $match) {
+                $rawCandidates[] = $match;
+            }
+        }
+
+        preg_match_all('/[A-Z0-9\-]{4,10}/', $text, $genericMatches);
+        foreach (($genericMatches[0] ?? []) as $match) {
+            $rawCandidates[] = $match;
+        }
+
+        if (!$rawCandidates) return '';
 
         $best = '';
-        $bestScore = PHP_INT_MAX;
+        $bestScore = PHP_INT_MIN;
 
-        foreach ($tokens as $token) {
-            $norm = $this->normalizeToken($token);
-            if ($norm === '') continue;
+        foreach ($rawCandidates as $rawCandidate) {
+            $candidate = $this->cleanPlateString($rawCandidate);
+            if ($candidate === '') continue;
 
-            $plain = str_replace('-', '', $norm);
-            if (strlen($plain) < 4 || strlen($plain) > 10) continue;
-            if (!preg_match('/[A-Z]/', $plain)) continue;
-            if (!preg_match('/\d/', $plain)) continue;
+            $score = $this->scorePlateCandidate($candidate);
+            if ($score < 0) continue;
 
-            $score = abs(7 - strlen($plain));
-            if ($score < $bestScore) {
-                $best = $norm;
+            if ($score > $bestScore) {
+                $best = $candidate;
                 $bestScore = $score;
             }
         }
