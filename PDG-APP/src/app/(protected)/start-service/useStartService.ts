@@ -10,6 +10,10 @@ import {
   startServiceLog,
 } from "./api";
 
+const OCR_MAX_DIMENSION = 2048;
+const OCR_MAX_SOURCE_BYTES = 5 * 1024 * 1024;
+const OCR_OUTPUT_QUALITY = 0.82;
+
 function normalizePlateValue(input: string): string {
   const cleaned = input.toUpperCase().replace(/[^A-Z0-9-]/g, "");
   const compact = cleaned.replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -42,6 +46,89 @@ function extractPlateCandidate(rawText: string): string {
     });
 
   return scored[0] ?? "";
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image_load_failed"));
+    };
+
+    image.src = url;
+  });
+}
+
+function canvasToJpegBlob(
+  canvas: HTMLCanvasElement,
+  quality: number,
+): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), "image/jpeg", quality);
+  });
+}
+
+async function prepareImageForOcr(file: File): Promise<File> {
+  if (typeof window === "undefined") return file;
+  if (!file.type.startsWith("image/")) return file;
+
+  let image: HTMLImageElement;
+  try {
+    image = await loadImage(file);
+  } catch {
+    return file;
+  }
+
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  if (width <= 0 || height <= 0) return file;
+
+  const scale = Math.min(1, OCR_MAX_DIMENSION / Math.max(width, height));
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
+
+  const isCommonType =
+    file.type === "image/jpeg" ||
+    file.type === "image/jpg" ||
+    file.type === "image/png" ||
+    file.type === "image/webp";
+  const needsResize =
+    width > OCR_MAX_DIMENSION ||
+    height > OCR_MAX_DIMENSION ||
+    file.size > OCR_MAX_SOURCE_BYTES;
+
+  if (!needsResize && isCommonType) {
+    return file;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+
+  ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+  const blob = await canvasToJpegBlob(canvas, OCR_OUTPUT_QUALITY);
+  canvas.width = 0;
+  canvas.height = 0;
+
+  if (!blob) return file;
+
+  const baseName = file.name.replace(/\.[^/.]+$/, "") || "plate";
+  return new File([blob], `${baseName}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
 }
 
 export interface UseStartServiceResult {
@@ -165,18 +252,28 @@ export function useStartService(): UseStartServiceResult {
   const [ocrError, setOcrError] = useState(false);
 
   const handleImageChange = async (file: File | null) => {
-    setVehicleImage(file);
     setOcrError(false);
 
     if (!file) {
+      setVehicleImage(null);
       setOcrData(null);
       setPlate("");
       return;
     }
 
+    const uploadFile = await prepareImageForOcr(file);
+    setVehicleImage(uploadFile);
+
     setLoadingOcr(true);
     try {
-      const { status, data } = await sendOcrImage(file);
+      let { status, data } = await sendOcrImage(uploadFile);
+
+      if ((status !== 200 || !data) && uploadFile !== file) {
+        const retry = await sendOcrImage(file);
+        status = retry.status;
+        data = retry.data;
+        setVehicleImage(file);
+      }
 
       if (status !== 200 || !data) {
         setOcrData(null);

@@ -49,36 +49,41 @@ class PlateOcrController extends Controller
                 ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
-            if ($imageSize > 10 * 1024 * 1024 && function_exists('imagecreatefromstring')) {
-                Log::info('OCR image from camera is large; attempting resize', [
+            $maxDimension = 2048;
+            $shouldResizeBySize = $imageSize > 5 * 1024 * 1024;
+            $shouldResizeByDimension = $imgW > $maxDimension || $imgH > $maxDimension;
+
+            if (($shouldResizeBySize || $shouldResizeByDimension) && function_exists('imagecreatefromstring')) {
+                Log::info('OCR image needs resize before Vision', [
                     'original_size' => $imageSize,
                     'original_width' => $imgW,
                     'original_height' => $imgH,
+                    'resize_by_size' => $shouldResizeBySize,
+                    'resize_by_dimension' => $shouldResizeByDimension,
                 ]);
 
                 $srcImage = @imagecreatefromstring($imageContent);
                 if ($srcImage !== false && $imgW > 0 && $imgH > 0) {
-                    $maxDimension = 2048;
-                    if ($imgW > $maxDimension || $imgH > $maxDimension) {
-                        $scale = min($maxDimension / $imgW, $maxDimension / $imgH);
-                        $newW = max(1, (int)round($imgW * $scale));
-                        $newH = max(1, (int)round($imgH * $scale));
+                    $scale = min($maxDimension / $imgW, $maxDimension / $imgH, 1);
+                    $newW = max(1, (int)round($imgW * $scale));
+                    $newH = max(1, (int)round($imgH * $scale));
 
-                        $resized = imagecreatetruecolor($newW, $newH);
-                        imagecopyresampled($resized, $srcImage, 0, 0, 0, 0, $newW, $newH, $imgW, $imgH);
+                    $resized = imagecreatetruecolor($newW, $newH);
+                    imagecopyresampled($resized, $srcImage, 0, 0, 0, 0, $newW, $newH, $imgW, $imgH);
 
-                        ob_start();
-                        imagejpeg($resized, null, 80);
-                        $jpegContent = ob_get_clean();
+                    ob_start();
+                    imagejpeg($resized, null, 82);
+                    $jpegContent = ob_get_clean();
 
-                        if ($jpegContent !== false) {
-                            $imageContent = $jpegContent;
-                            $imgW = $newW;
-                            $imgH = $newH;
-                        }
-
-                        imagedestroy($resized);
+                    if ($jpegContent !== false) {
+                        $imageContent = $jpegContent;
+                        $imgW = $newW;
+                        $imgH = $newH;
                     }
+
+                    imagedestroy($resized);
+                    imagedestroy($srcImage);
+                } elseif ($srcImage !== false) {
                     imagedestroy($srcImage);
                 }
             }
