@@ -96,24 +96,44 @@ async function prepareImageForOcr(file: File): Promise<File> {
   if (typeof window === "undefined") return file;
   if (!file.type.startsWith("image/")) return file;
 
+  const isHeic =
+    /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+  const isCommonType =
+    file.type === "image/jpeg" ||
+    file.type === "image/jpg" ||
+    file.type === "image/png" ||
+    file.type === "image/webp";
+
   let width = 0;
   let height = 0;
   let drawSource: CanvasImageSource;
   let bitmap: ImageBitmap | null = null;
 
+  // Prefer createImageBitmap: it handles EXIF orientation natively and uses
+  // less memory than HTMLImageElement on mobile devices.
   try {
-    const image = await loadImage(file);
-    width = image.naturalWidth || image.width;
-    height = image.naturalHeight || image.height;
-    drawSource = image;
-  } catch {
-    if (typeof createImageBitmap !== "function") return file;
-    try {
-      bitmap = await createImageBitmap(file);
+    if (typeof createImageBitmap === "function") {
+      bitmap = await createImageBitmap(file, {
+        imageOrientation: "from-image",
+      });
       width = bitmap.width;
       height = bitmap.height;
       drawSource = bitmap;
+    } else {
+      throw new Error("createImageBitmap not available");
+    }
+  } catch {
+    try {
+      const image = await loadImage(file);
+      width = image.naturalWidth || image.width;
+      height = image.naturalHeight || image.height;
+      drawSource = image;
     } catch {
+      console.warn("[OCR prep] Could not decode image", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
       return file;
     }
   }
@@ -123,17 +143,6 @@ async function prepareImageForOcr(file: File): Promise<File> {
     return file;
   }
 
-  const scale = Math.min(1, OCR_MAX_DIMENSION / Math.max(width, height));
-  const targetWidth = Math.max(1, Math.round(width * scale));
-  const targetHeight = Math.max(1, Math.round(height * scale));
-
-  const isHeic =
-    /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
-  const isCommonType =
-    file.type === "image/jpeg" ||
-    file.type === "image/jpg" ||
-    file.type === "image/png" ||
-    file.type === "image/webp";
   const needsResize =
     width > OCR_MAX_DIMENSION ||
     height > OCR_MAX_DIMENSION ||
@@ -143,6 +152,17 @@ async function prepareImageForOcr(file: File): Promise<File> {
     if (bitmap) bitmap.close();
     return file;
   }
+
+  const scale = Math.min(1, OCR_MAX_DIMENSION / Math.max(width, height));
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
+
+  console.info("[OCR prep] Resizing image", {
+    original: `${width}x${height}`,
+    target: `${targetWidth}x${targetHeight}`,
+    originalSize: file.size,
+    type: file.type,
+  });
 
   const canvas = document.createElement("canvas");
   canvas.width = targetWidth;
@@ -157,11 +177,33 @@ async function prepareImageForOcr(file: File): Promise<File> {
   ctx.drawImage(drawSource, 0, 0, targetWidth, targetHeight);
   if (bitmap) bitmap.close();
 
-  const blob = await canvasToJpegBlob(canvas, OCR_OUTPUT_QUALITY);
+  // Try toBlob at progressively lower quality — on mobile browsers toBlob can
+  // return null when the canvas pixel budget is exceeded.
+  let blob = await canvasToJpegBlob(canvas, OCR_OUTPUT_QUALITY);
+  if (!blob) {
+    console.warn(
+      "[OCR prep] toBlob returned null at quality",
+      OCR_OUTPUT_QUALITY,
+    );
+    blob = await canvasToJpegBlob(canvas, 0.7);
+  }
+  if (!blob) {
+    console.warn("[OCR prep] toBlob returned null at quality 0.7");
+    blob = await canvasToJpegBlob(canvas, 0.5);
+  }
+
   canvas.width = 0;
   canvas.height = 0;
 
-  if (!blob) return file;
+  if (!blob) {
+    console.warn("[OCR prep] All toBlob attempts failed, using original file", {
+      name: file.name,
+      size: file.size,
+    });
+    return file;
+  }
+
+  console.info("[OCR prep] Resize complete", { outputSize: blob.size });
 
   const baseName = file.name.replace(/\.[^/.]+$/, "") || "plate";
   return new File([blob], `${baseName}.jpg`, {
@@ -304,6 +346,15 @@ export function useStartService(): UseStartServiceResult {
     }
 
     const uploadFile = await prepareImageForOcr(file);
+
+    console.info("[OCR] Image prepared", {
+      originalSize: file.size,
+      originalType: file.type,
+      uploadSize: uploadFile.size,
+      uploadType: uploadFile.type,
+      wasResized: uploadFile !== file,
+    });
+
     setVehicleImage(uploadFile);
 
     setLoadingOcr(true);

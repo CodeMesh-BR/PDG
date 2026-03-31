@@ -212,8 +212,17 @@ export default function StartServiceForm({
 
             {ocrError && (
               <div className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
-                <p>Warning: Could not detect the plate automatically. Please enter it manually.</p>
-                {ocrDebugId && <p>Request ID: {ocrDebugId}</p>}
+                <p>
+                  Warning: Could not detect the plate automatically. Please
+                  enter it manually.
+                </p>
+                <p className="mt-0.5">
+                  Tip: if using the camera didn&apos;t work, try selecting a
+                  photo from your gallery.
+                </p>
+                {ocrDebugId && (
+                  <p className="mt-0.5">Request ID: {ocrDebugId}</p>
+                )}
               </div>
             )}
 

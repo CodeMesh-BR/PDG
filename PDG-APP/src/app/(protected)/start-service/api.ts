@@ -13,7 +13,8 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/proxy";
 
 function authHeaders(): HeadersInit {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -24,7 +25,7 @@ interface RequestResult<T> {
 
 async function request<T>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<RequestResult<T>> {
   const res = await fetch(url, {
     ...options,
@@ -47,15 +48,17 @@ async function request<T>(
   };
 }
 
-
 export async function sendOcrImage(
-  file: File
+  file: File,
 ): Promise<{ status: number; data: OcrResponse | null }> {
   const form = new FormData();
   form.append("image", file);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
   try {
     const res = await fetch(`${API_URL}/plate-ocr`, {
@@ -65,6 +68,7 @@ export async function sendOcrImage(
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: form,
+      signal: controller.signal,
     });
 
     let data: OcrResponse | null = null;
@@ -83,11 +87,13 @@ export async function sendOcrImage(
       status: 0,
       data: null,
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
 export async function startServiceLog(
-  payload: StartServicePayload
+  payload: StartServicePayload,
 ): Promise<RequestResult<StartServiceResponse>> {
   const date = payload.date.slice(0, 10);
 
@@ -103,7 +109,6 @@ export async function startServiceLog(
     },
   });
 }
-
 
 export async function fetchCompanies(): Promise<Paginated<Company>> {
   const res = await request<Paginated<Company>>(`${API_URL}/companies`, {
@@ -121,13 +126,13 @@ export async function fetchCompanies(): Promise<Paginated<Company>> {
 }
 
 export async function fetchCompanyServices(
-  companyId: number
+  companyId: number,
 ): Promise<Service[]> {
   const res = await request<{ data: Company }>(
     `${API_URL}/companies/${companyId}`,
     {
       headers: authHeaders(),
-    }
+    },
   );
 
   return res.data?.data?.services ?? [];
@@ -143,7 +148,7 @@ export async function fetchServiceLogs(date: string): Promise<{
     `${API_URL}/service-logs?date=${day}`,
     {
       headers: authHeaders(),
-    }
+    },
   );
 
   return {
@@ -163,16 +168,19 @@ export async function deleteServiceLog(id: number) {
 }
 
 export async function fetchServiceLog(id: number): Promise<ServiceLog | null> {
-  const res = await request<{ data: ServiceLog }>(`${API_URL}/service-logs/${id}`, {
-    headers: authHeaders(),
-  });
+  const res = await request<{ data: ServiceLog }>(
+    `${API_URL}/service-logs/${id}`,
+    {
+      headers: authHeaders(),
+    },
+  );
 
   return res.data?.data ?? null;
 }
 
 export async function updateServiceLog(
   id: number,
-  payload: Partial<Omit<ServiceLog, "id">>
+  payload: Partial<Omit<ServiceLog, "id">>,
 ) {
   return request(`${API_URL}/service-logs/${id}`, {
     method: "PUT",
