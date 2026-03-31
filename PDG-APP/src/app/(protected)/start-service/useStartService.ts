@@ -10,9 +10,9 @@ import {
   startServiceLog,
 } from "./api";
 
-const OCR_MAX_DIMENSION = 3072;
+const OCR_MAX_DIMENSION = 1024;
 const OCR_MAX_SOURCE_BYTES = 5 * 1024 * 1024;
-const OCR_OUTPUT_QUALITY = 0.9;
+const OCR_OUTPUT_QUALITY = 0.8;
 
 function normalizePlateValue(input: string): string {
   const cleaned = input.toUpperCase().replace(/[^A-Z0-9-]/g, "");
@@ -154,7 +154,9 @@ async function prepareImageForOcr(
     file.size > OCR_MAX_SOURCE_BYTES;
 
   if (!needsResize && isCommonType && !isHeic) {
-    log?.(`No resize needed: ${width}x${height}, ${(file.size / 1024).toFixed(0)}KB`);
+    log?.(
+      `No resize needed: ${width}x${height}, ${(file.size / 1024).toFixed(0)}KB`,
+    );
     if (bitmap) bitmap.close();
     return file;
   }
@@ -363,7 +365,9 @@ export function useStartService(): UseStartServiceResult {
       return;
     }
 
-    addDebugLog(`Input: ${file.name} | ${file.type} | ${(file.size / 1024).toFixed(0)}KB`);
+    addDebugLog(
+      `Input: ${file.name} | ${file.type} | ${(file.size / 1024).toFixed(0)}KB`,
+    );
     const uploadFile = await prepareImageForOcr(file, addDebugLog);
 
     addDebugLog(
@@ -404,7 +408,9 @@ export function useStartService(): UseStartServiceResult {
       const detectedPlate = normalizePlateValue(data.plate ?? "");
       const fallbackPlate = extractPlateCandidate(data.debug_raw_google ?? "");
 
-      addDebugLog(`OCR response: plate="${data.plate ?? ""}" raw="${(data.debug_raw_google ?? "").slice(0, 80)}"`);
+      addDebugLog(
+        `OCR response: plate="${data.plate ?? ""}" raw="${(data.debug_raw_google ?? "").slice(0, 80)}"`,
+      );
       addDebugLog(`Detected: "${detectedPlate}" Fallback: "${fallbackPlate}"`);
 
       setOcrData(data);
@@ -412,7 +418,9 @@ export function useStartService(): UseStartServiceResult {
       setOcrDebugId(data.debug_request_id ?? null);
       setOcrError(detectedPlate === "" && fallbackPlate === "");
     } catch (err) {
-      addDebugLog(`OCR error: ${err instanceof Error ? err.message : String(err)}`);
+      addDebugLog(
+        `OCR error: ${err instanceof Error ? err.message : String(err)}`,
+      );
       setOcrData(null);
       setPlate("");
       setOcrDebugId(null);
