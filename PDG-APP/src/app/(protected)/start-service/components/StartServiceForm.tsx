@@ -38,6 +38,7 @@ export default function StartServiceForm({
     setPlate,
     ocrError,
     ocrDebugId,
+    debugLogs,
   } = service;
 
   const submit = async () => {
@@ -54,6 +55,7 @@ export default function StartServiceForm({
   };
 
   const [imageName, setImageName] = useState("");
+  const [showDebug, setShowDebug] = useState(false);
   const galleryInputId = "plate-photo-input";
 
   const handleFilePicked = (file: File | null) => {
@@ -257,6 +259,24 @@ export default function StartServiceForm({
               variant="dark"
             />
           </div>
+        </div>
+      )}
+
+      {/* Debug panel — remove after investigation */}
+      {debugLogs.length > 0 && (
+        <div className="mt-4">
+          <button
+            type="button"
+            className="text-xs text-gray-400 underline"
+            onClick={() => setShowDebug((v) => !v)}
+          >
+            {showDebug ? "Hide debug" : "Show debug"}
+          </button>
+          {showDebug && (
+            <pre className="mt-1 max-h-48 overflow-auto rounded bg-black p-2 text-[10px] leading-tight text-green-400">
+              {debugLogs.join("\n")}
+            </pre>
+          )}
         </div>
       )}
     </div>

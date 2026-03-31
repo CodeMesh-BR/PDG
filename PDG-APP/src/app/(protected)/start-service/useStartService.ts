@@ -92,7 +92,10 @@ function canvasToJpegBlob(
   });
 }
 
-async function prepareImageForOcr(file: File): Promise<File> {
+async function prepareImageForOcr(
+  file: File,
+  log?: (msg: string) => void,
+): Promise<File> {
   if (typeof window === "undefined") return file;
   if (!file.type.startsWith("image/")) return file;
 
@@ -119,6 +122,7 @@ async function prepareImageForOcr(file: File): Promise<File> {
       width = bitmap.width;
       height = bitmap.height;
       drawSource = bitmap;
+      log?.(`Decoded via createImageBitmap: ${width}x${height}`);
     } else {
       throw new Error("createImageBitmap not available");
     }
@@ -128,6 +132,7 @@ async function prepareImageForOcr(file: File): Promise<File> {
       width = image.naturalWidth || image.width;
       height = image.naturalHeight || image.height;
       drawSource = image;
+      log?.(`Decoded via HTMLImageElement: ${width}x${height}`);
     } catch {
       console.warn("[OCR prep] Could not decode image", {
         name: file.name,
@@ -149,6 +154,7 @@ async function prepareImageForOcr(file: File): Promise<File> {
     file.size > OCR_MAX_SOURCE_BYTES;
 
   if (!needsResize && isCommonType && !isHeic) {
+    log?.(`No resize needed: ${width}x${height}, ${(file.size / 1024).toFixed(0)}KB`);
     if (bitmap) bitmap.close();
     return file;
   }
@@ -181,6 +187,7 @@ async function prepareImageForOcr(file: File): Promise<File> {
   // return null when the canvas pixel budget is exceeded.
   let blob = await canvasToJpegBlob(canvas, OCR_OUTPUT_QUALITY);
   if (!blob) {
+    log?.(`toBlob null at quality ${OCR_OUTPUT_QUALITY}, retrying 0.7`);
     console.warn(
       "[OCR prep] toBlob returned null at quality",
       OCR_OUTPUT_QUALITY,
@@ -188,6 +195,7 @@ async function prepareImageForOcr(file: File): Promise<File> {
     blob = await canvasToJpegBlob(canvas, 0.7);
   }
   if (!blob) {
+    log?.("toBlob null at 0.7, retrying 0.5");
     console.warn("[OCR prep] toBlob returned null at quality 0.7");
     blob = await canvasToJpegBlob(canvas, 0.5);
   }
@@ -196,6 +204,7 @@ async function prepareImageForOcr(file: File): Promise<File> {
   canvas.height = 0;
 
   if (!blob) {
+    log?.("ALL toBlob attempts failed — sending original file");
     console.warn("[OCR prep] All toBlob attempts failed, using original file", {
       name: file.name,
       size: file.size,
@@ -203,6 +212,7 @@ async function prepareImageForOcr(file: File): Promise<File> {
     return file;
   }
 
+  log?.(`Resize OK: ${(blob.size / 1024).toFixed(0)}KB`);
   console.info("[OCR prep] Resize complete", { outputSize: blob.size });
 
   const baseName = file.name.replace(/\.[^/.]+$/, "") || "plate";
@@ -244,6 +254,7 @@ export interface UseStartServiceResult {
   confirmStart: () => Promise<void>;
   ocrError: boolean;
   ocrDebugId: string | null;
+  debugLogs: string[];
 }
 
 export function useStartService(): UseStartServiceResult {
@@ -333,9 +344,16 @@ export function useStartService(): UseStartServiceResult {
   const [plate, setPlate] = useState("");
   const [ocrError, setOcrError] = useState(false);
   const [ocrDebugId, setOcrDebugId] = useState<string | null>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+  const addDebugLog = (msg: string) => {
+    const ts = new Date().toLocaleTimeString();
+    setDebugLogs((prev) => [...prev, `[${ts}] ${msg}`]);
+  };
 
   const handleImageChange = async (file: File | null) => {
     setOcrError(false);
+    setDebugLogs([]);
 
     if (!file) {
       setVehicleImage(null);
@@ -345,7 +363,14 @@ export function useStartService(): UseStartServiceResult {
       return;
     }
 
-    const uploadFile = await prepareImageForOcr(file);
+    addDebugLog(`Input: ${file.name} | ${file.type} | ${(file.size / 1024).toFixed(0)}KB`);
+    const uploadFile = await prepareImageForOcr(file, addDebugLog);
+
+    addDebugLog(
+      uploadFile !== file
+        ? `Resized: ${(uploadFile.size / 1024).toFixed(0)}KB (${uploadFile.type})`
+        : `No resize needed (${(file.size / 1024).toFixed(0)}KB)`,
+    );
 
     console.info("[OCR] Image prepared", {
       originalSize: file.size,
@@ -379,11 +404,15 @@ export function useStartService(): UseStartServiceResult {
       const detectedPlate = normalizePlateValue(data.plate ?? "");
       const fallbackPlate = extractPlateCandidate(data.debug_raw_google ?? "");
 
+      addDebugLog(`OCR response: plate="${data.plate ?? ""}" raw="${(data.debug_raw_google ?? "").slice(0, 80)}"`);
+      addDebugLog(`Detected: "${detectedPlate}" Fallback: "${fallbackPlate}"`);
+
       setOcrData(data);
       setPlate(detectedPlate || fallbackPlate);
       setOcrDebugId(data.debug_request_id ?? null);
       setOcrError(detectedPlate === "" && fallbackPlate === "");
-    } catch {
+    } catch (err) {
+      addDebugLog(`OCR error: ${err instanceof Error ? err.message : String(err)}`);
       setOcrData(null);
       setPlate("");
       setOcrDebugId(null);
@@ -472,5 +501,6 @@ export function useStartService(): UseStartServiceResult {
     confirmStart,
     ocrError,
     ocrDebugId,
+    debugLogs,
   };
 }
