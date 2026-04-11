@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui-elements/button";
 import type { UseStartServiceResult } from "../useStartService";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface StartServiceFormProps {
   onSuccess: () => void;
@@ -57,10 +57,18 @@ export default function StartServiceForm({
   const [imageName, setImageName] = useState("");
   const [showDebug, setShowDebug] = useState(false);
   const galleryInputId = "plate-photo-input";
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFilePicked = (file: File | null) => {
     setImageName(file?.name ?? "");
     void handleImageChange(file);
+  };
+
+  const openInput = (source: "camera" | "gallery") => {
+    const input =
+      source === "camera" ? cameraInputRef.current : galleryInputRef.current;
+    input?.click();
   };
 
   useEffect(() => {
@@ -134,28 +142,66 @@ export default function StartServiceForm({
       <label className="mb-1 block text-sm">Vehicle plate photo</label>
 
       <div className="flex flex-col gap-1">
-        <label
-          htmlFor={galleryInputId}
-          className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => openInput("camera")}
+            className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
           >
-            <path d="M3 7h3l2-3h8l2 3h3v12H3z" />
-            <circle cx="12" cy="13" r="4" />
-          </svg>
-          <span>Take photo</span>
-        </label>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 7h3l2-3h8l2 3h3v12H3z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            <span>Camera</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openInput("gallery")}
+            className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="8.5" cy="10" r="1.5" />
+              <path d="M21 15l-4.5-4.5L8 19" />
+            </svg>
+            <span>Gallery</span>
+          </button>
+        </div>
 
         <input
-          id={galleryInputId}
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            handleFilePicked(file);
+            e.currentTarget.value = "";
+          }}
+        />
+
+        <input
+          ref={galleryInputRef}
           type="file"
           accept="image/*"
           className="sr-only"
