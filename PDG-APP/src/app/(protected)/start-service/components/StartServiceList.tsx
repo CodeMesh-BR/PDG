@@ -26,6 +26,9 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
                 Plate
               </th>
               <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
+                Stock
+              </th>
+              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
                 Date
               </th>
               <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
@@ -58,7 +61,16 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
                   </td>
 
                   <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
-                    {log.car_plate}
+                    {log.car_plate || "-"}
+                    {log.vehicle_condition && (
+                      <div className="text-xs capitalize text-gray-500 dark:text-gray-400">
+                        {log.vehicle_condition}
+                      </div>
+                    )}
+                  </td>
+
+                  <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
+                    {log.stock_number || "-"}
                   </td>
 
                   <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">

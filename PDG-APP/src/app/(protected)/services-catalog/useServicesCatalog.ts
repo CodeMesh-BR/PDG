@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import type { Department } from "../departments/useDepartments";
 
 export interface Service {
   id: number;
+  department_id?: number | null;
+  department?: Department | null;
   type: string;
   description: string;
   value: string;

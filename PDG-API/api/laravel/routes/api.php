@@ -6,6 +6,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\UserRegistrationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\PlateOcrController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\ReportController;
@@ -34,6 +35,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/services/{service}', [ServiceController::class, 'show']);
     Route::match(['put', 'patch'], '/services/{service}', [ServiceController::class, 'update']);
     Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
+
+    // Departments
+    Route::post('/departments', [DepartmentController::class, 'store']);
+    Route::get('/departments', [DepartmentController::class, 'index']);
+    Route::get('/departments/{department}', [DepartmentController::class, 'show']);
+    Route::match(['put', 'patch'], '/departments/{department}', [DepartmentController::class, 'update']);
+    Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
 
     // Companies
     Route::post('/companies', [CompanyController::class, 'store']);

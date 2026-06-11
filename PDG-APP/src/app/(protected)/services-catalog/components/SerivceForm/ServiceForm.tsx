@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
+import { getBillingModes, useDepartments } from "@/app/(protected)/departments/useDepartments";
 
 interface Props {
   onSuccess?: () => void;
 }
 
 export default function ServiceCatalogForm({ onSuccess }: Props) {
+  const { departments, loading: loadingDepartments } = useDepartments();
   const [form, setForm] = useState({
+    department_id: "",
     type: "",
     description: "",
     value: "",
@@ -23,6 +26,10 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
   const validate = () => {
     if (form.type.trim().length < 2) {
       return "Type must be at least 2 characters.";
+    }
+
+    if (!form.department_id) {
+      return "Department is required.";
     }
 
     if (form.description.trim().length < 3) {
@@ -43,7 +50,7 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -77,7 +84,7 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create service");
 
-      setForm({ type: "", description: "", value: "", cost_value: "" });
+      setForm({ department_id: "", type: "", description: "", value: "", cost_value: "" });
       setSuccess("Service created successfully!");
 
       if (onSuccess) onSuccess();
@@ -107,6 +114,24 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
           className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
           required
         />
+
+        <select
+          name="department_id"
+          value={form.department_id}
+          onChange={handleChange}
+          className="w-full rounded border p-2 dark:text-white md:w-[calc(50%-8px)]"
+          required
+          disabled={loadingDepartments}
+        >
+          <option value="">
+            {loadingDepartments ? "Loading departments..." : "Department *"}
+          </option>
+          {departments.map((department) => (
+            <option key={department.id} value={department.id}>
+              {department.name} ({getBillingModes(department)})
+            </option>
+          ))}
+        </select>
 
         <input
           name="value"

@@ -11,6 +11,7 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'department_id' => ['required', 'integer', 'exists:departments,id'],
             'type'        => ['required', 'string', 'min:2', 'max:150'],
             'description' => ['required', 'string', 'min:2', 'max:500'],
             'value'       => ['required', 'decimal:0,2'],
@@ -19,15 +20,19 @@ class ServiceController extends Controller
 
         try {
             $service = Service::create([
+                'department_id' => $validated['department_id'],
                 'type'        => $validated['type'],
                 'description' => $validated['description'],
                 'value'       => $validated['value'],
                 'cost_value'  => $validated['cost_value'],
             ]);
 
+            $service->load('department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity');
+
             return response()->json([
                 'message' => 'Service created successfully.',
                 'service' => $service,
+                'data' => $service,
             ], 201);
         } catch (QueryException $e) {
             if ($e->getCode() === '23505') {
@@ -42,7 +47,8 @@ class ServiceController extends Controller
     {
         return response()->json(
             \App\Models\Service::query()
-                ->select('id', 'type', 'description', 'value', 'cost_value', 'created_at', 'updated_at')
+                ->with('department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity')
+                ->select('id', 'department_id', 'type', 'description', 'value', 'cost_value', 'created_at', 'updated_at')
                 ->orderByDesc('id')
                 ->paginate(15)
         );
@@ -55,6 +61,8 @@ class ServiceController extends Controller
         return response()->json([
             'data' => [
                 'id'                => $service->id,
+                'department_id'     => $service->department_id,
+                'department'        => $service->department,
                 'type'              => $service->type,
                 'description'       => $service->description,
                 'value'             => $service->value,
@@ -69,6 +77,7 @@ class ServiceController extends Controller
     public function update(Request $request, Service $service)
     {
         $validated = $request->validate([
+            'department_id' => ['required', 'integer', 'exists:departments,id'],
             'type'        => ['required', 'string', 'min:2', 'max:150'],
             'description' => ['required', 'string', 'min:2', 'max:500'],
             'value'       => ['required', 'decimal:0,2'],
@@ -77,16 +86,21 @@ class ServiceController extends Controller
 
         try {
             $service->update([
+                'department_id' => $validated['department_id'],
                 'type'        => $validated['type'],
                 'description' => $validated['description'],
                 'value'       => $validated['value'],
                 'cost_value'  => $validated['cost_value'],
             ]);
 
+            $service->load('department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity');
+
             return response()->json([
                 'message' => 'Service updated successfully.',
                 'data'    => [
                     'id'          => $service->id,
+                    'department_id' => $service->department_id,
+                    'department' => $service->department,
                     'type'        => $service->type,
                     'description' => $service->description,
                     'value'       => $service->value,

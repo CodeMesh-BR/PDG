@@ -13,6 +13,7 @@ export function Header({ hideSidebarToggle = false }: { hideSidebarToggle?: bool
     "/": "Dashboard",
     "/companies": "Companies",
     "/companies/[id]/edit": "Companies",
+    "/departments": "Departments",
     "/employees": "Employees",
     "/employees/[id]/edit": "Employees",
     "/services-catalog": "Services Catalog",

@@ -12,7 +12,8 @@ class CompanyController extends Controller
     public function index()
     {
         $companies = \App\Models\Company::with(['services' => function ($q) {
-            $q->select('services.id', 'type', 'description', 'value');
+            $q->select('services.id', 'department_id', 'type', 'description', 'value')
+                ->with('department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity');
         }])
             ->select('id', 'name', 'display_name', 'email', 'address', 'phone', 'default_service_id', 'created_at')
             ->orderByDesc('id')
@@ -72,7 +73,14 @@ class CompanyController extends Controller
     // GET /api/companies/{id}
     public function show($id)
     {
-        $company = Company::findOrFail($id);
+        $company = Company::with([
+            'services' => function ($q) {
+                $q->select('services.id', 'department_id', 'type', 'description', 'value')
+                    ->with('department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity');
+            },
+            'defaultService:id,department_id,type,description,value',
+            'defaultService.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
+        ])->findOrFail($id);
 
         return response()->json([
             'data' => $company->only([
@@ -133,7 +141,12 @@ class CompanyController extends Controller
         }
 
         // retornar ja com os servicos atualizados
-        $company->load('services:id,type,description,value', 'defaultService:id,type,description,value');
+        $company->load(
+            'services:id,department_id,type,description,value',
+            'services.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
+            'defaultService:id,department_id,type,description,value',
+            'defaultService.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity'
+        );
 
         return response()->json([
             'message' => 'Company updated successfully',
@@ -150,4 +163,3 @@ class CompanyController extends Controller
         return response()->json(null, 204);
     }
 }
-

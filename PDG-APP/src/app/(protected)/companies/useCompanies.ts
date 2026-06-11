@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import type { Department } from "../departments/useDepartments";
 
 export interface CompanyService {
   id: number;
+  department_id?: number | null;
+  department?: Department | null;
   type: string;
   description: string;
   value: string;
@@ -18,6 +21,8 @@ export interface Company {
   default_service_id: number;
   services?: {
     id: number;
+    department_id?: number | null;
+    department?: Department | null;
     type: string;
     description: string;
     value: string;

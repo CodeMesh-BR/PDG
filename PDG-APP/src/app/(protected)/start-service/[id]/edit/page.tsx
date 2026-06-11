@@ -37,7 +37,7 @@ export default function EditServicePage() {
       if (result) {
         setCompany(result.company_id);
         setService(result.service_id);
-        setPlate(result.car_plate);
+        setPlate(result.car_plate ?? "");
         setQuantity(result.quantity);
         setNotes(result.notes ?? "");
       }

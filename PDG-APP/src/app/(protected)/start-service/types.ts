@@ -1,4 +1,6 @@
+import type { Department } from "../departments/useDepartments";
 
+export type VehicleCondition = "new" | "used";
 
 export interface Company {
   id: number;
@@ -14,6 +16,8 @@ export interface Company {
 
 export interface Service {
   id: number;
+  department_id?: number | null;
+  department?: Department | null;
   type: string;
   description: string;
   value: string;
@@ -29,6 +33,7 @@ export interface Paginated<T> {
 
 export interface OcrResponse {
   plate: string;
+  stock_number?: string;
   score: number;
 
   debug_raw_google?: string;
@@ -44,7 +49,9 @@ export interface ServiceLog {
   id: number;
   company_id: number;
   service_id: number;
-  car_plate: string;
+  car_plate: string | null;
+  vehicle_condition?: VehicleCondition | null;
+  stock_number?: string | null;
   performed_at: string;
   quantity: number;
   notes: string | null;
@@ -57,6 +64,8 @@ export interface ServiceLog {
 
   service: {
     id: number;
+    department_id?: number | null;
+    department?: Department | null;
     type: string;
     description: string;
     value: string;
@@ -67,7 +76,9 @@ export interface ServiceLog {
 export interface StartServicePayload {
   company_id: number;
   service_id: number;
-  car_plate: string;
+  car_plate?: string | null;
+  vehicle_condition?: VehicleCondition | null;
+  stock_number?: string | null;
   date: string;
   quantity?: number;
   notes?: string | null;
@@ -80,7 +91,9 @@ export interface StartServiceResponse {
     id: number;
     company_id: number;
     service_id: number;
-    car_plate: string;
+    car_plate: string | null;
+    vehicle_condition?: VehicleCondition | null;
+    stock_number?: string | null;
     performed_at: string;
     quantity: number;
     notes: string | null;

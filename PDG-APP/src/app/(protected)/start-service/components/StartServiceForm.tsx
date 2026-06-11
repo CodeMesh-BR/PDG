@@ -36,6 +36,10 @@ export default function StartServiceForm({
     confirmStart,
     plate,
     setPlate,
+    vehicleCondition,
+    setVehicleCondition,
+    stockNumber,
+    setStockNumber,
     ocrError,
     ocrDebugId,
     debugLogs,
@@ -59,6 +63,17 @@ export default function StartServiceForm({
   const galleryInputId = "plate-photo-input";
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const selectedServiceData =
+    services.find((item) => Number(item.id) === Number(selectedService)) ?? null;
+  const requiresNewUsed = selectedServiceData?.department?.name === "New / Used";
+  const requiresPlateInput = !requiresNewUsed || vehicleCondition === "used";
+  const requiresStockNumber = requiresNewUsed;
+  const showVehiclePhotoInput = !requiresNewUsed || Boolean(vehicleCondition);
+  const canStart =
+    Boolean(selectedService) &&
+    (!requiresStockNumber || Boolean(stockNumber.trim())) &&
+    (!requiresNewUsed || Boolean(vehicleCondition)) &&
+    (!requiresPlateInput || Boolean(plate));
 
   const handleFilePicked = (file: File | null) => {
     setImageName(file?.name ?? "");
@@ -70,6 +85,13 @@ export default function StartServiceForm({
       source === "camera" ? cameraInputRef.current : galleryInputRef.current;
     input?.click();
   };
+
+  useEffect(() => {
+    if (requiresPlateInput) return;
+
+    setImageName("");
+    void handleImageChange(null);
+  }, [requiresPlateInput]);
 
   useEffect(() => {
     if (!selectedCompany) return;
@@ -139,155 +161,207 @@ export default function StartServiceForm({
         ))}
       </select>
 
-      <label className="mb-1 block text-sm">Vehicle plate photo</label>
-
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => openInput("camera")}
-            className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
+      {requiresNewUsed && (
+        <>
+          <label className="mb-1 block text-sm">Vehicle condition</label>
+          <select
+            className="mb-4 w-full rounded border p-2 dark:text-white dark:placeholder:text-white"
+            value={vehicleCondition}
+            onChange={(e) =>
+              setVehicleCondition(
+                e.target.value === "new" || e.target.value === "used"
+                  ? e.target.value
+                  : "",
+              )
+            }
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 7h3l2-3h8l2 3h3v12H3z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-            <span>Camera</span>
-          </button>
+            <option value="">Select...</option>
+            <option value="new">New</option>
+            <option value="used">Used</option>
+          </select>
+        </>
+      )}
 
-          <button
-            type="button"
-            onClick={() => openInput("gallery")}
-            className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <circle cx="8.5" cy="10" r="1.5" />
-              <path d="M21 15l-4.5-4.5L8 19" />
-            </svg>
-            <span>Gallery</span>
-          </button>
-        </div>
+      {requiresStockNumber && (
+        <>
+          <label className="mb-1 block text-sm">Stock number</label>
+          <input
+            type="text"
+            value={stockNumber}
+            onChange={(e) => setStockNumber(e.target.value)}
+            placeholder="Enter stock number"
+            className="mb-4 w-full rounded border p-2 uppercase dark:bg-gray-800 dark:text-white"
+          />
+          {imageName && ocrError && !stockNumber && (
+            <p className="-mt-3 mb-4 text-xs text-yellow-600 dark:text-yellow-400">
+              Could not detect the stock number automatically. Please enter it manually.
+            </p>
+          )}
+        </>
+      )}
 
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="sr-only"
-          onChange={(e) => {
-            const file = e.target.files?.[0] ?? null;
-            handleFilePicked(file);
-            e.currentTarget.value = "";
-          }}
-        />
+      {showVehiclePhotoInput && (
+        <>
+          <label className="mb-1 block text-sm">
+            {requiresNewUsed ? "Vehicle stock photo" : "Vehicle plate photo"}
+          </label>
 
-        <input
-          ref={galleryInputRef}
-          type="file"
-          accept="image/*"
-          className="sr-only"
-          onChange={(e) => {
-            const file = e.target.files?.[0] ?? null;
-            handleFilePicked(file);
-            e.currentTarget.value = "";
-          }}
-        />
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => openInput("camera")}
+                className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 7h3l2-3h8l2 3h3v12H3z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                <span>Camera</span>
+              </button>
 
-        {imageName && (
-          <span className="text-xs text-gray-500 dark:text-gray-300">
-            Selected: <span className="font-medium">{imageName}</span>
-          </span>
-        )}
+              <button
+                type="button"
+                onClick={() => openInput("gallery")}
+                className="inline-flex w-fit items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-[#2f2f2f] dark:text-gray-200 dark:hover:bg-[#3b3b3b]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <circle cx="8.5" cy="10" r="1.5" />
+                  <path d="M21 15l-4.5-4.5L8 19" />
+                </svg>
+                <span>Gallery</span>
+              </button>
+            </div>
 
-        {loadingOcr && (
-          <div className="mt-1 flex items-center gap-2 text-sm text-indigo-500 dark:text-indigo-400">
-            <svg
-              className="h-4 w-4 animate-spin"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"
-              />
-            </svg>
-            <span>Processing photo...</span>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-4">
-        {imageName && (
-          <>
-            <label className="mb-1 block text-sm">Vehicle plate</label>
             <input
-              type="text"
-              value={plate}
-              onChange={(e) => setPlate(e.target.value.toUpperCase())}
-              placeholder="Enter or correct the plate"
-              className="w-full rounded border p-2 dark:bg-gray-800 dark:text-white"
-              disabled={loadingOcr}
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                handleFilePicked(file);
+                e.currentTarget.value = "";
+              }}
             />
 
-            {ocrError && (
-              <div className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
-                <p>
-                  Warning: Could not detect the plate automatically. Please
-                  enter it manually.
-                </p>
-                <p className="mt-0.5">
-                  Tip: if using the camera didn&apos;t work, try selecting a
-                  photo from your gallery.
-                </p>
-                {ocrDebugId && (
-                  <p className="mt-0.5">Request ID: {ocrDebugId}</p>
-                )}
-              </div>
+            <input
+              ref={galleryInputRef}
+              id={galleryInputId}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                handleFilePicked(file);
+                e.currentTarget.value = "";
+              }}
+            />
+
+            {imageName && (
+              <span className="text-xs text-gray-500 dark:text-gray-300">
+                Selected: <span className="font-medium">{imageName}</span>
+              </span>
             )}
 
-            {!ocrError && ocrData?.plate && (
-              <p className="mt-1 text-xs text-gray-500">
-                OCR detected: <b>{ocrData.plate}</b>
-              </p>
+            {loadingOcr && (
+              <div className="mt-1 flex items-center gap-2 text-sm text-indigo-500 dark:text-indigo-400">
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"
+                  />
+                </svg>
+                <span>Processing photo...</span>
+              </div>
             )}
-          </>
-        )}
-      </div>
+          </div>
+
+          <div className="mt-4">
+            {requiresPlateInput && (imageName || requiresNewUsed) && (
+              <>
+                <label className="mb-1 block text-sm">Vehicle plate</label>
+                <input
+                  type="text"
+                  value={plate}
+                  onChange={(e) => setPlate(e.target.value.toUpperCase())}
+                  placeholder="Enter or correct the plate"
+                  className="w-full rounded border p-2 dark:bg-gray-800 dark:text-white"
+                  disabled={loadingOcr}
+                />
+
+                {ocrError && (
+                  <div className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
+                    <p>
+                      Warning: Could not detect the plate automatically. Please
+                      enter it manually.
+                    </p>
+                    <p className="mt-0.5">
+                      Tip: if using the camera didn&apos;t work, try selecting a
+                      photo from your gallery.
+                    </p>
+                    {ocrDebugId && (
+                      <p className="mt-0.5">Request ID: {ocrDebugId}</p>
+                    )}
+                  </div>
+                )}
+
+                {!ocrError && ocrData?.plate && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    OCR detected: <b>{ocrData.plate}</b>
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </>
+      )}
+
+      {!requiresPlateInput && requiresNewUsed && vehicleCondition === "new" && (
+        <p className="text-sm text-gray-500 dark:text-gray-300">
+          New cars only require the stock number. Use the photo to fill it automatically or enter it manually.
+        </p>
+      )}
 
       <Button
         type="button"
         className="mt-4 w-full"
         label={saving ? "Starting..." : "Start"}
-        disabled={!plate || !selectedService || saving}
+        disabled={!canStart || saving}
         onClick={submit}
       />
 

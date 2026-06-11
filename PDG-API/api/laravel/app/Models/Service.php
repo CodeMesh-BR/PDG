@@ -10,6 +10,7 @@ class Service extends Model
     use HasFactory;
 
     protected $fillable = [
+        'department_id',
         'type',
         'description',
         'value',
@@ -29,5 +30,10 @@ class Service extends Model
     public function companies()
     {
         return $this->belongsToMany(Company::class, 'service_company')->withTimestamps();
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
     }
 }

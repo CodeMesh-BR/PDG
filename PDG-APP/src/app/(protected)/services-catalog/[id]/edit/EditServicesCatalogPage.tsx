@@ -5,14 +5,17 @@ import { Button } from "@/components/ui-elements/button";
 import { useRouter } from "next/navigation";
 import { useEditServiceCatalog } from "./useEditServicesCatalog";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
+import { getBillingModes, useDepartments } from "@/app/(protected)/departments/useDepartments";
 
 export default function EditServiceCatalogPage({ id }: { id: number }) {
   const { service, loading, saving, error, saveService } =
     useEditServiceCatalog(id);
+  const { departments, loading: loadingDepartments } = useDepartments();
 
   const router = useRouter();
 
   const [form, setForm] = useState({
+    department_id: "",
     type: "",
     description: "",
     value: "",
@@ -25,6 +28,7 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
   useEffect(() => {
     if (service) {
       setForm({
+        department_id: service.department_id ? String(service.department_id) : "",
         type: service.type,
         description: service.description,
         value: service.value,
@@ -36,6 +40,9 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
   const validate = () => {
     if (form.type.trim().length < 2) {
       return "Type must be at least 2 characters.";
+    }
+    if (!form.department_id) {
+      return "Department is required.";
     }
     if (form.description.trim().length < 3) {
       return "Description must be at least 3 characters.";
@@ -55,7 +62,7 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -113,6 +120,24 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
           className="w-full rounded border p-2"
           required
         />
+
+        <select
+          name="department_id"
+          value={form.department_id}
+          onChange={handleChange}
+          className="w-full rounded border p-2"
+          required
+          disabled={loadingDepartments}
+        >
+          <option value="">
+            {loadingDepartments ? "Loading departments..." : "Department"}
+          </option>
+          {departments.map((department) => (
+            <option key={department.id} value={department.id}>
+              {department.name} ({getBillingModes(department)})
+            </option>
+          ))}
+        </select>
 
         <textarea
           name="description"

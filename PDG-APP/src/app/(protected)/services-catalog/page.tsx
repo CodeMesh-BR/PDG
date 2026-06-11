@@ -18,7 +18,8 @@ export default function ServicesCatalogPage() {
     return services.filter((s) => {
       const type = (s.type || "").toLowerCase();
       const desc = (s.description || "").toLowerCase();
-      return type.includes(q) || desc.includes(q);
+      const department = (s.department?.name || "").toLowerCase();
+      return type.includes(q) || desc.includes(q) || department.includes(q);
     });
   }, [services, search]);
 

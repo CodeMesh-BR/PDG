@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Company, Service, ServiceLog, OcrResponse } from "./types";
+import {
+  Company,
+  Service,
+  ServiceLog,
+  OcrResponse,
+  VehicleCondition,
+} from "./types";
 import {
   fetchCompanies,
   fetchCompanyServices,
@@ -18,6 +24,14 @@ function normalizePlateValue(input: string): string {
   const cleaned = input.toUpperCase().replace(/[^A-Z0-9-]/g, "");
   const compact = cleaned.replace(/-+/g, "-").replace(/^-|-$/g, "");
   return compact;
+}
+
+function normalizeStockNumber(input: string): string {
+  return input.trim().toUpperCase();
+}
+
+function isNewUsedService(service?: Service | null): boolean {
+  return service?.department?.name === "New / Used";
 }
 
 function extractPlateCandidate(rawText: string): string {
@@ -62,6 +76,36 @@ function extractPlateCandidate(rawText: string): string {
     });
 
   return scored.at(-1) ?? "";
+}
+
+function extractStockNumberCandidate(rawText: string, plate: string): string {
+  if (!rawText) return "";
+
+  const platePlain = plate.replace(/-/g, "").toUpperCase();
+  const lines = rawText.toUpperCase().split(/\r?\n/);
+  const labelPattern = /\b(STOCK|STK|S\/N|INV(?:ENTORY)?|UNIT)\b/;
+
+  for (const line of lines) {
+    if (!labelPattern.test(line)) continue;
+
+    const matches = line.match(/[A-Z0-9][A-Z0-9-]{2,19}/g) ?? [];
+    for (const match of matches) {
+      const candidate = normalizeStockNumber(match);
+      const plain = candidate.replace(/-/g, "");
+
+      if (
+        plain.length >= 3 &&
+        plain.length <= 20 &&
+        /\d/.test(plain) &&
+        plain !== platePlain &&
+        !["STOCK", "STK", "NUMBER", "UNIT", "INVENTORY", "INV"].includes(plain)
+      ) {
+        return candidate;
+      }
+    }
+  }
+
+  return "";
 }
 
 function loadImage(file: File): Promise<HTMLImageElement> {
@@ -245,6 +289,10 @@ export interface UseStartServiceResult {
   loadingOcr: boolean;
   plate?: string;
   setPlate: (value: string) => void;
+  vehicleCondition: VehicleCondition | "";
+  setVehicleCondition: (value: VehicleCondition | "") => void;
+  stockNumber: string;
+  setStockNumber: (value: string) => void;
   handleImageChange: (file: File | null) => Promise<void>;
   saving: boolean;
   duplicateWarning: boolean;
@@ -303,10 +351,16 @@ export function useStartService(): UseStartServiceResult {
     setSelectedCompanyState(id);
     setSelectedServiceState(null);
     setServices([]);
+    setPlate("");
+    setVehicleCondition("");
+    setStockNumber("");
   };
 
   const setSelectedService = (id: number | null) => {
     setSelectedServiceState(id);
+    setVehicleCondition("");
+    setStockNumber("");
+    setPlate("");
   };
 
   useEffect(() => {
@@ -344,6 +398,8 @@ export function useStartService(): UseStartServiceResult {
   const [ocrData, setOcrData] = useState<OcrResponse | null>(null);
   const [loadingOcr, setLoadingOcr] = useState(false);
   const [plate, setPlate] = useState("");
+  const [vehicleCondition, setVehicleCondition] = useState<VehicleCondition | "">("");
+  const [stockNumber, setStockNumberState] = useState("");
   const [ocrError, setOcrError] = useState(false);
   const [ocrDebugId, setOcrDebugId] = useState<string | null>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
@@ -351,6 +407,10 @@ export function useStartService(): UseStartServiceResult {
   const addDebugLog = (msg: string) => {
     const ts = new Date().toLocaleTimeString();
     setDebugLogs((prev) => [...prev, `[${ts}] ${msg}`]);
+  };
+
+  const setStockNumber = (value: string) => {
+    setStockNumberState(normalizeStockNumber(value));
   };
 
   const handleImageChange = async (file: File | null) => {
@@ -407,16 +467,25 @@ export function useStartService(): UseStartServiceResult {
 
       const detectedPlate = normalizePlateValue(data.plate ?? "");
       const fallbackPlate = extractPlateCandidate(data.debug_raw_google ?? "");
+      const finalPlate = detectedPlate || fallbackPlate;
+      const detectedStockNumber = normalizeStockNumber(data.stock_number ?? "");
+      const fallbackStockNumber = extractStockNumberCandidate(
+        data.debug_raw_google ?? "",
+        finalPlate,
+      );
 
       addDebugLog(
-        `OCR response: plate="${data.plate ?? ""}" raw="${(data.debug_raw_google ?? "").slice(0, 80)}"`,
+        `OCR response: plate="${data.plate ?? ""}" stock="${data.stock_number ?? ""}" raw="${(data.debug_raw_google ?? "").slice(0, 80)}`,
       );
-      addDebugLog(`Detected: "${detectedPlate}" Fallback: "${fallbackPlate}"`);
+      addDebugLog(
+        `Detected plate: "${detectedPlate}" Fallback plate: "${fallbackPlate}" Stock: "${detectedStockNumber || fallbackStockNumber}"`,
+      );
 
       setOcrData(data);
-      setPlate(detectedPlate || fallbackPlate);
+      setPlate(finalPlate);
+      setStockNumber(detectedStockNumber || fallbackStockNumber);
       setOcrDebugId(data.debug_request_id ?? null);
-      setOcrError(detectedPlate === "" && fallbackPlate === "");
+      setOcrError(finalPlate === "" && (detectedStockNumber || fallbackStockNumber) === "");
     } catch (err) {
       addDebugLog(
         `OCR error: ${err instanceof Error ? err.message : String(err)}`,
@@ -437,15 +506,31 @@ export function useStartService(): UseStartServiceResult {
     success?: boolean;
     needsConfirmation?: boolean;
   } | void> => {
-    if (!selectedCompany || !selectedService || !plate) return;
+    if (!selectedCompany || !selectedService) return;
+
+    const service = services.find((item) => item.id === selectedService);
+    const requiresNewUsed = isNewUsedService(service);
+    const normalizedStockNumber = normalizeStockNumber(stockNumber);
+
+    if (requiresNewUsed) {
+      if (!vehicleCondition || !normalizedStockNumber) return;
+      if (vehicleCondition === "used" && !plate) return;
+    } else if (!plate) {
+      return;
+    }
 
     setSaving(true);
     const today = new Date().toISOString().slice(0, 10);
+    const payloadVehicleCondition = requiresNewUsed
+      ? (vehicleCondition as VehicleCondition)
+      : null;
 
     const { status, data } = await startServiceLog({
       company_id: selectedCompany,
       service_id: selectedService,
-      car_plate: plate,
+      car_plate: requiresNewUsed && vehicleCondition === "new" ? null : plate,
+      vehicle_condition: payloadVehicleCondition,
+      stock_number: requiresNewUsed ? normalizedStockNumber : null,
       date: today,
     });
 
@@ -464,14 +549,30 @@ export function useStartService(): UseStartServiceResult {
   };
 
   const confirmStart = async (): Promise<void> => {
-    if (!selectedCompany || !selectedService || !plate) return;
+    if (!selectedCompany || !selectedService) return;
+
+    const service = services.find((item) => item.id === selectedService);
+    const requiresNewUsed = isNewUsedService(service);
+    const normalizedStockNumber = normalizeStockNumber(stockNumber);
+
+    if (requiresNewUsed) {
+      if (!vehicleCondition || !normalizedStockNumber) return;
+      if (vehicleCondition === "used" && !plate) return;
+    } else if (!plate) {
+      return;
+    }
 
     const today = new Date().toISOString().slice(0, 10);
+    const payloadVehicleCondition = requiresNewUsed
+      ? (vehicleCondition as VehicleCondition)
+      : null;
 
     await startServiceLog({
       company_id: selectedCompany,
       service_id: selectedService,
-      car_plate: plate,
+      car_plate: requiresNewUsed && vehicleCondition === "new" ? null : plate,
+      vehicle_condition: payloadVehicleCondition,
+      stock_number: requiresNewUsed ? normalizedStockNumber : null,
       date: today,
       force: true,
     });
@@ -500,6 +601,10 @@ export function useStartService(): UseStartServiceResult {
     loadingOcr,
     plate,
     setPlate,
+    vehicleCondition,
+    setVehicleCondition,
+    stockNumber,
+    setStockNumber,
     handleImageChange,
 
     saving,

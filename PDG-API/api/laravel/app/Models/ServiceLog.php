@@ -11,6 +11,8 @@ class ServiceLog extends Model
         'company_id',
         'service_id',
         'car_plate',
+        'vehicle_condition',
+        'stock_number',
         'performed_at',
         'quantity',
         'notes',

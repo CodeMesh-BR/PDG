@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Service } from "../../useServicesCatalog";
 import { Pencil, Trash2 } from "lucide-react";
+import { getBillingModes } from "@/app/(protected)/departments/useDepartments";
 
 interface Props {
   services: Service[];
@@ -76,6 +77,15 @@ export default function ServiceCatalogList({
                     {s.description}
                   </div>
                   <div className="mt-2 text-sm text-gray-700 dark:text-gray-200">
+                    Department:{" "}
+                    <strong>{s.department?.name || "Not assigned"}</strong>
+                  </div>
+                  {s.department && (
+                    <div className="mt-1 text-sm text-gray-700 dark:text-gray-200">
+                      Billing: <strong>{getBillingModes(s.department)}</strong>
+                    </div>
+                  )}
+                  <div className="mt-1 text-sm text-gray-700 dark:text-gray-200">
                     Value: <strong>${s.value}</strong>
                   </div>
                   <div className="mt-1 text-sm text-gray-700 dark:text-gray-200">
@@ -137,6 +147,9 @@ export default function ServiceCatalogList({
                     Description
                   </th>
                   <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
+                    Department
+                  </th>
+                  <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
                     Value
                   </th>
                   <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
@@ -162,6 +175,15 @@ export default function ServiceCatalogList({
                       <span className="line-clamp-1 sm:line-clamp-2">
                         {s.description}
                       </span>
+                    </td>
+
+                    <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
+                      <div className="font-medium">{s.department?.name || "-"}</div>
+                      {s.department && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {getBillingModes(s.department)}
+                        </div>
+                      )}
                     </td>
 
                     <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">

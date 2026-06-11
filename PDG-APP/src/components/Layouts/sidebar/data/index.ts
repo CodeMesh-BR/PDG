@@ -4,6 +4,7 @@ import type { LucideProps } from "lucide-react";
 import {
   LayoutDashboard,
   Store,
+  Building2,
   SprayCan,
   Users,
   Car,
@@ -28,6 +29,7 @@ export const NAV_DATA: NavSection[] = [
     items: [
       { title: "Dashboard", icon: LayoutDashboard, url: "/", items: [] },
       { title: "Companies", icon: Store, url: "/companies", items: [] },
+      { title: "Departments", icon: Building2, url: "/departments", items: [] },
       {
         title: "Service Catalog",
         icon: SprayCan,

@@ -29,6 +29,7 @@ class PlateOcrController extends Controller
             if (!$image || !$image->isValid()) {
                 return response()->json([
                     'plate' => '',
+                    'stock_number' => '',
                     'score' => 0,
                     'error' => 'invalid_image_upload',
                     'debug_request_id' => $requestId,
@@ -49,6 +50,7 @@ class PlateOcrController extends Controller
             if (!$this->isAllowedUploadMime($mimeType, $clientMime, $extension) && ($imgW <= 0 || $imgH <= 0)) {
                 return response()->json([
                     'plate' => '',
+                    'stock_number' => '',
                     'score' => 0,
                     'error' => 'unsupported_image_type',
                     'debug_request_id' => $requestId,
@@ -135,6 +137,7 @@ class PlateOcrController extends Controller
                 }
                 return response()->json([
                     'plate' => '',
+                    'stock_number' => '',
                     'score' => 0,
                     'debug_request_id' => $requestId,
                 ], Response::HTTP_OK);
@@ -186,6 +189,7 @@ class PlateOcrController extends Controller
             if ($plate === '') {
                 $plate = $this->pickPlateFromFullText($fullText);
             }
+            $stockNumber = $this->pickStockNumberFromFullText($fullText, $plate);
 
             if ($plate === '') {
                 Log::info('OCR finished without plate', [
@@ -200,6 +204,7 @@ class PlateOcrController extends Controller
 
             return response()->json([
                 'plate' => $plate,
+                'stock_number' => $stockNumber,
                 'score' => $plate !== '' ? 200 : 0,
                 'debug_raw_google' => $fullText,
                 'debug_vehicle_box' => $vehicleBox,
@@ -651,5 +656,97 @@ class PlateOcrController extends Controller
         }
 
         return $best;
+    }
+
+    private function pickStockNumberFromFullText(string $fullText, string $plate = ''): string
+    {
+        if ($fullText === '') return '';
+
+        $text = strtoupper($fullText);
+        $lines = preg_split('/\R+/', $text) ?: [];
+        $platePlain = str_replace('-', '', strtoupper($plate));
+
+        foreach ($lines as $line) {
+            $candidate = $this->pickStockNumberFromLine($line, $platePlain);
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        $normalized = preg_replace('/[^A-Z0-9#:\-\s]/', ' ', $text);
+        $normalized = preg_replace('/\s+/', ' ', trim((string)$normalized));
+
+        $labelPatterns = [
+            '/(?:STOCK\s*(?:NO|NUMBER|#)?|STK\s*(?:NO|#)?|S\/N)\s*[:#-]?\s*([A-Z0-9][A-Z0-9\-]{2,19})/',
+            '/(?:INV(?:ENTORY)?\s*(?:NO|#)?|UNIT\s*(?:NO|#)?)\s*[:#-]?\s*([A-Z0-9][A-Z0-9\-]{2,19})/',
+        ];
+
+        foreach ($labelPatterns as $pattern) {
+            if (!preg_match_all($pattern, $normalized, $matches)) {
+                continue;
+            }
+
+            foreach (($matches[1] ?? []) as $match) {
+                $candidate = $this->cleanStockNumberString($match);
+                if ($this->isValidStockNumberCandidate($candidate, $platePlain)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private function pickStockNumberFromLine(string $line, string $platePlain): string
+    {
+        $line = strtoupper($line);
+        if (!preg_match('/\b(?:STOCK|STK|S\/N|INV(?:ENTORY)?|UNIT)\b/', $line)) {
+            return '';
+        }
+
+        $line = preg_replace('/[^A-Z0-9#:\-\s\/]/', ' ', $line);
+        $line = preg_replace('/\s+/', ' ', trim((string)$line));
+
+        if (!preg_match_all('/[A-Z0-9][A-Z0-9\-]{2,19}/', $line, $matches)) {
+            return '';
+        }
+
+        $ignored = ['STOCK', 'STK', 'NUMBER', 'UNIT', 'INVENTORY', 'INV', 'NO'];
+
+        foreach (($matches[0] ?? []) as $match) {
+            $candidate = $this->cleanStockNumberString($match);
+            if (in_array($candidate, $ignored, true)) {
+                continue;
+            }
+
+            if ($this->isValidStockNumberCandidate($candidate, $platePlain)) {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
+    private function cleanStockNumberString(string $value): string
+    {
+        $value = strtoupper($value);
+        $value = preg_replace('/[^A-Z0-9\-]/', '', $value);
+        $value = preg_replace('/\-+/', '-', (string)$value);
+
+        return trim((string)$value, '-');
+    }
+
+    private function isValidStockNumberCandidate(string $candidate, string $platePlain): bool
+    {
+        if ($candidate === '') return false;
+
+        $plain = str_replace('-', '', $candidate);
+        $len = strlen($plain);
+
+        if ($len < 3 || $len > 20) return false;
+        if ($platePlain !== '' && $plain === $platePlain) return false;
+        if (in_array($plain, ['STOCK', 'STK', 'NUMBER', 'UNIT', 'INVENTORY', 'INV'], true)) return false;
+
+        return (bool)preg_match('/[0-9]/', $plain);
     }
 }
