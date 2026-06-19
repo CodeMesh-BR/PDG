@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -14,9 +13,10 @@ return new class extends Migration
             $table->string('stock_number', 50)->nullable()->after('vehicle_condition');
             $table->index(['vehicle_condition']);
             $table->index(['stock_number']);
-        });
 
-        DB::statement('ALTER TABLE service_logs ALTER COLUMN car_plate DROP NOT NULL');
+            // car_plate passa a ser opcional (portável entre MySQL/Postgres)
+            $table->string('car_plate', 20)->nullable()->change();
+        });
     }
 
     public function down(): void

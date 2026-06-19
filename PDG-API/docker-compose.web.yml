@@ -9,9 +9,9 @@ services:
     volumes:
       - ./api/laravel:/var/www/html
     environment:
-      DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+      DB_CONNECTION: ${DB_CONNECTION:-mysql}
       DB_HOST: ${DB_HOST:?Configure DB_HOST no arquivo de ambiente web}
-      DB_PORT: ${DB_PORT:-5432}
+      DB_PORT: ${DB_PORT:-3306}
       DB_DATABASE: ${DB_DATABASE:?Configure DB_DATABASE no arquivo de ambiente web}
       DB_USERNAME: ${DB_USERNAME:?Configure DB_USERNAME no arquivo de ambiente web}
       DB_PASSWORD: ${DB_PASSWORD:?Configure DB_PASSWORD no arquivo de ambiente web}

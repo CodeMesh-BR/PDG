@@ -69,7 +69,10 @@ class UserRegistrationController extends Controller
                 'work_certificate_pdf_path' => $validated['work_certificate_pdf_path'] ?? null,
             ]);
         } catch (QueryException $e) {
-            if ((int)($e->errorInfo[0] ?? 0) === 23505 || $e->getCode() === '23505') {
+            // MySQL: SQLSTATE 23000 / código 1062 (Duplicate entry)
+            $sqlState = (string)($e->errorInfo[0] ?? $e->getCode());
+            $driverCode = (int)($e->errorInfo[1] ?? 0);
+            if ($sqlState === '23000' || $driverCode === 1062) {
                 return response()->json(['message' => 'Email already exists.'], 409);
             }
             throw $e;

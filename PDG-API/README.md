@@ -1,7 +1,11 @@
 # PDG Dashboard — Laravel API (Docker)
 
-API em **Laravel 11** embutida no projeto React (Vite), localizada em `src/api/laravel`.
-Infra com **PHP 8.3 + Apache** e **PostgreSQL 16** via Docker.
+API em **Laravel 12** localizada em `api/laravel`.
+Infra com **PHP 8.3 + Apache** e **MySQL 8** via Docker.
+
+> **Banco:** o sistema usa **MySQL**. Localmente o `docker-compose.yml` sobe um
+> container MySQL 8. Para rodar no servidor (cPanel) basta apontar as variáveis
+> `DB_*` do `.env` para o banco MySQL do cPanel — nenhuma outra alteração é necessária.
 
 ---
 
@@ -12,7 +16,7 @@ Infra com **PHP 8.3 + Apache** e **PostgreSQL 16** via Docker.
 - (Windows) Compartilhar a unidade do projeto nas _Settings → Resources → File Sharing_ do Docker
 - Portas livres:
   - **8080** (HTTP da API)
-  - **5432** (Postgres; se já tiver outro Postgres local, mude a porta — ver abaixo)
+  - **3306** (MySQL; se já tiver outro MySQL local, mude a porta — ver abaixo)
 
 ---
 
@@ -32,7 +36,7 @@ project-root/
 │     └─ public/
 ├─ docker/
 │  └─ api/
-│     ├─ Dockerfile         # PHP 8.3 + Apache + pdo_pgsql
+│     ├─ Dockerfile         # PHP 8.3 + Apache + pdo_mysql
 │     └─ vhost.conf         # DocumentRoot /public + rewrite
 ```
 
@@ -68,8 +72,8 @@ docker compose up -d --build
 ### 2) APP_KEY e caches
 
 ```bash
-php artisan route:clear
-php artisan route:cache
+docker compose exec api php artisan route:clear
+docker compose exec api php artisan route:cache
 docker compose exec api php artisan key:generate
 docker compose exec api php artisan optimize:clear
 ```
@@ -82,17 +86,21 @@ APP_ENV=local
 APP_DEBUG=true
 APP_URL=http://localhost:8080
 
-DB_CONNECTION=pgsql
+DB_CONNECTION=mysql
 DB_HOST=db
-DB_PORT=5432
-DB_DATABASE=pdg_dash
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
+DB_PORT=3306
+DB_DATABASE=pdgdetailing_local
+DB_USERNAME=pdg_local
+DB_PASSWORD=pdg_local_password
 
 CACHE_STORE=file
 SESSION_DRIVER=file
 QUEUE_CONNECTION=sync
 ```
+
+> **No servidor (cPanel):** mantenha `DB_CONNECTION=mysql` e troque apenas
+> `DB_HOST` (normalmente `localhost`), `DB_DATABASE`, `DB_USERNAME` e
+> `DB_PASSWORD` pelos dados do MySQL criado no cPanel.
 
 ### 4) Executar migrates do banco
 
@@ -100,7 +108,7 @@ QUEUE_CONNECTION=sync
 docker compose exec api php artisan migrate
 ```
 
-> **Dica:** se trocou usuário/senha do Postgres após o primeiro `up`, o volume pode ter credenciais antigas.
+> **Dica:** se trocou usuário/senha do MySQL após o primeiro `up`, o volume pode ter credenciais antigas.
 > Solução rápida (apaga dados): `docker compose down -v && docker compose up -d --build`
 
 ---
@@ -318,10 +326,10 @@ per_page (integer)
 ## DBeaver (opcional)
 
 - Host: `localhost`
-- Port: `5432` (ou a que você expôs no compose)
-- Database: `pdg_dash`
-- User: `postgres`
-- Password: `postgres`
+- Port: `3306` (ou a que você expôs no compose)
+- Database: `pdgdetailing_local`
+- User: `pdg_local`
+- Password: `pdg_local_password`
 
 ---
 
@@ -373,22 +381,23 @@ docker compose exec api composer dump-autoload --optimize
 - **404 nos endpoints**: cheque `bootstrap/app.php` com `->withRouting(...)`, Apache apontando para `/public` e `mod_rewrite` ativo.
 - **405 (PATCH/PUT)**: confirme que existe rota `match(['put','patch'], '/users/{user}', ...)`.
 - **409 ao criar**: email já existe (esperado). Mensagem: _Email already exists._
-- **FATAL: password authentication failed**: volume do Postgres com credenciais antigas → `docker compose down -v && up -d --build`.
+- **Access denied for user**: volume do MySQL com credenciais antigas → `docker compose down -v && up -d --build`.
 - **Could not open input file: artisan**: volume errado; monte `./src/api/laravel:/var/www/html`.
 - **CORS**: ajuste `config/cors.php` (`allowed_origins`) e limpe configs.
 
 # PADRÃO ENV
 
-DB_CONNECTION=pgsql
+DB_CONNECTION=mysql
 DB_HOST=db
-DB_PORT=5432
-DB_DATABASE=pdg_dash
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
+DB_PORT=3306
+DB_DATABASE=pdgdetailing_local
+DB_USERNAME=pdg_local
+DB_PASSWORD=pdg_local_password
 
 # PADRÃO DOCKER COMPOSE YML
 
 environment:
-POSTGRES_DB: pdg_dash
-POSTGRES_USER: postgres
-POSTGRES_PASSWORD: postgres
+MYSQL_DATABASE: pdgdetailing_local
+MYSQL_USER: pdg_local
+MYSQL_PASSWORD: pdg_local_password
+MYSQL_ROOT_PASSWORD: root_password

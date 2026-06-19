@@ -43,7 +43,9 @@ return new class extends Migration {
                 SET display_name = COALESCE(display_name, full_name, {$hasNameCol})
                 WHERE display_name IS NULL
             ");
-            DB::statement("ALTER TABLE users ALTER COLUMN display_name SET NOT NULL");
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('display_name', 150)->nullable(false)->change();
+            });
         }
 
         if (Schema::hasColumn('users', 'full_name')) {

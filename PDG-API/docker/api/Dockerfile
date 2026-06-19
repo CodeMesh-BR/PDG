@@ -1,10 +1,10 @@
 FROM php:8.3-apache
 
 RUN apt-get update && apt-get install -y \
-  git unzip libpq-dev \
+  git unzip default-mysql-client \
   tesseract-ocr tesseract-ocr-eng tesseract-ocr-por libtesseract-dev \
   imagemagick libmagickwand-dev libjpeg-dev libpng-dev \
-  && docker-php-ext-install bcmath pdo pdo_pgsql \
+  && docker-php-ext-install bcmath pdo pdo_mysql \
   && pecl install imagick \
   && docker-php-ext-enable imagick \
   && a2enmod rewrite headers \
