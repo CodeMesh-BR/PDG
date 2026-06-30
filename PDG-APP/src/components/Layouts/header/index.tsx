@@ -4,11 +4,11 @@ import { Menu } from "lucide-react";
 import { useSidebarContext } from "../sidebar/sidebar-context";
 import { ThemeToggleSwitch } from "./theme-toggle";
 import { UserInfo } from "./user-info";
-import { usePathname } from "next/navigation";
+import { useLocation } from "react-router-dom";
 
 export function Header({ hideSidebarToggle = false }: { hideSidebarToggle?: boolean }) {
   const { toggleSidebar, isMobile } = useSidebarContext();
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const pageTitles: Record<string, string> = {
     "/": "Dashboard",
     "/companies": "Companies",

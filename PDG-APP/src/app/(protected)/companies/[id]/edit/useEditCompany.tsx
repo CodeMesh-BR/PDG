@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 import { Company } from "../../useCompanies";
@@ -19,7 +21,7 @@ export function useEditCompany(id: number) {
       if (!token) throw new Error("Unauthorized");
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/companies/${id}`,
+        `${API_BASE_URL}/companies/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -48,7 +50,7 @@ export function useEditCompany(id: number) {
       if (!token) throw new Error("Unauthorized");
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/companies/${id}`,
+        `${API_BASE_URL}/companies/${id}`,
         {
           method: "PUT",
           headers: {

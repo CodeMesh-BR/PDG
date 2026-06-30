@@ -2,8 +2,8 @@
 
 import { ChevronUpIcon } from "@/assets/icons";
 import { cn } from "@/lib/utils";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Dropdown, DropdownContent, DropdownTrigger } from "./ui/dropdown";
 
 type PropsType<TItem> = {
@@ -21,9 +21,9 @@ export function PeriodPicker<TItem extends string>({
   items,
   minimal,
 }: PropsType<TItem>) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -57,9 +57,7 @@ export function PeriodPicker<TItem extends string>({
                     selectedTimeFrame: searchParams.get(PARAM_KEY),
                   });
 
-                  router.push(pathname + queryString, {
-                    scroll: false,
-                  });
+                  navigate(pathname + queryString);
 
                   setIsOpen(false);
                 }}

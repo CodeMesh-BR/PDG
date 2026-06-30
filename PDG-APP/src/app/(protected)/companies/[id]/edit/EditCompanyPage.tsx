@@ -1,9 +1,11 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { useEditCompany } from "./useEditCompany";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
 import { Star } from "lucide-react";
 
@@ -17,7 +19,7 @@ export default function EditCompanyPage({ id }: { id: number }) {
     address: "",
   });
 
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name: "",
@@ -142,7 +144,7 @@ export default function EditCompanyPage({ id }: { id: number }) {
       return;
     }
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/companies`, {
+    const res = await fetch(`${API_BASE_URL}/companies`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
@@ -204,7 +206,7 @@ export default function EditCompanyPage({ id }: { id: number }) {
 
     if (ok) {
       setSuccess("Company updated successfully!");
-      router.push("/companies");
+      navigate("/companies");
     }
   };
 

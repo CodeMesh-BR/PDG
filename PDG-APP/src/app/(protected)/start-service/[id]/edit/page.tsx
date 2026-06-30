@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   fetchServiceLog,
   updateServiceLog,
@@ -12,7 +12,7 @@ import { ServiceLog, Company, Service } from "../../types";
 import { Button } from "@/components/ui-elements/button";
 
 export default function EditServicePage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const { id } = useParams();
 
   const [log, setLog] = useState<ServiceLog | null>(null);
@@ -68,7 +68,7 @@ export default function EditServicePage() {
     });
 
     setSaving(false);
-    router.push("/start-service");
+    navigate("/start-service");
   };
 
   if (loading) return <p className="p-6">Carregando...</p>;

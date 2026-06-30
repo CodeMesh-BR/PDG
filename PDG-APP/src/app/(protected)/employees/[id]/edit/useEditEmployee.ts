@@ -1,7 +1,9 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useNavigate, useParams } from "react-router-dom";
 
 export interface Employee {
   id: number;
@@ -19,7 +21,7 @@ export interface Employee {
 
 export function useEditEmployee() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const [user, setUser] = useState<Employee | null>(null);
   const [availability, setAvailability] = useState<string[]>([]);
@@ -50,7 +52,7 @@ export function useEditEmployee() {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Unauthorized");
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/users/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -127,7 +129,7 @@ Object.entries(payload).forEach(([key, value]) => {
   }
 });
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: "POST", 
         headers: {
           Authorization: `Bearer ${token}`,
@@ -147,7 +149,7 @@ Object.entries(payload).forEach(([key, value]) => {
         fd.append("contract_pdf", contractPdf);
 
         const uploadRes = await fetch(
-         `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
+         `${API_BASE_URL}/users/${id}`,
           {
             method: "POST",
             headers: {
@@ -165,7 +167,7 @@ Object.entries(payload).forEach(([key, value]) => {
 
       setSuccess("Employee updated successfully!");
 
-      router.push("/employees");
+      navigate("/employees");
     } catch (err: any) {
       setError(err.message);
     } finally {

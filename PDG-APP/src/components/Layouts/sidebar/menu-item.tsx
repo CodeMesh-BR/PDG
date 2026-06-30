@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { useSidebarContext } from "./sidebar-context";
 
 const menuItemBaseStyles = cva(
@@ -31,7 +31,7 @@ export function MenuItem(
   if (props.as === "link") {
     return (
       <Link
-        href={props.href}
+        to={props.href}
         // Close sidebar on clicking link if it's mobile
         onClick={() => isMobile && toggleSidebar()}
         className={cn(

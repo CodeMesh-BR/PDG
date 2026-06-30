@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
 
-export default function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-  const pathname = usePathname();
+import { useState, useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+
+export default function ProtectedLayout() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const [authorized, setAuthorized] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -19,13 +17,13 @@ export default function ProtectedLayout({
 
     const token = localStorage.getItem("token");
     if (!token) {
-      router.replace("/auth/sign-in");
+      navigate("/auth/sign-in", { replace: true });
       return;
     }
 
     const verify = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+        const res = await fetch(`${API_BASE_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -40,9 +38,9 @@ export default function ProtectedLayout({
 
         if (!canAccess(pathname, role)) {
           if (role === "detailer") {
-            router.replace("/start-service");
+            navigate("/start-service", { replace: true });
           } else {
-            router.replace("/unauthorized");
+            navigate("/unauthorized", { replace: true });
           }
         } else {
           setAuthorized(true);
@@ -50,12 +48,12 @@ export default function ProtectedLayout({
       } catch (err) {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
-        router.replace("/auth/sign-in");
+        navigate("/auth/sign-in", { replace: true });
       }
     };
 
     verify();
-  }, [pathname, router]);
+  }, [pathname, navigate]);
 
   if (!isClient || !authorized) {
     return (
@@ -65,7 +63,7 @@ export default function ProtectedLayout({
     );
   }
 
-  return <>{children}</>;
+  return <Outlet />;
 }
 
 function canAccess(path: string, role: string | null): boolean {

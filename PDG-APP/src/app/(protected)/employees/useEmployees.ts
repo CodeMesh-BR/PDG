@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 export interface EmployeeListItem {
@@ -24,7 +25,7 @@ export function useEmployees() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+      const res = await fetch(`${API_BASE_URL}/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",

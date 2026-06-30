@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui-elements/button";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { useEditServiceCatalog } from "./useEditServicesCatalog";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
 import { getBillingModes, useDepartments } from "@/app/(protected)/departments/useDepartments";
@@ -12,7 +12,7 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
     useEditServiceCatalog(id);
   const { departments, loading: loadingDepartments } = useDepartments();
 
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     department_id: "",
@@ -81,7 +81,7 @@ export default function EditServiceCatalogPage({ id }: { id: number }) {
     const ok = await saveService(form);
 
     if (ok) {
-      router.push("/services-catalog");
+      navigate("/services-catalog");
     }
   };
 

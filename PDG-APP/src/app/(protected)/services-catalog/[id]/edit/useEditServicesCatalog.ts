@@ -1,5 +1,7 @@
 'use client';
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useEffect, useState } from 'react';
 import { Service } from '../../useServicesCatalog';
 
@@ -14,7 +16,7 @@ export function useEditServiceCatalog(id: number) {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Unauthorized');
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/services/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
@@ -40,7 +42,7 @@ export function useEditServiceCatalog(id: number) {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Unauthorized');
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/services/${id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,

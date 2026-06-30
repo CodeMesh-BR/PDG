@@ -1,7 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Service } from "../../useServicesCatalog";
 import { Pencil, Trash2 } from "lucide-react";
 import { getBillingModes } from "@/app/(protected)/departments/useDepartments";
@@ -18,7 +20,7 @@ export default function ServiceCatalogList({
   view,
 }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this service?")) return;
@@ -29,7 +31,7 @@ export default function ServiceCatalogList({
       if (!token) throw new Error("Unauthorized");
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/services/${id}`,
+        `${API_BASE_URL}/services/${id}`,
         {
           method: "DELETE",
           headers: {
@@ -114,7 +116,7 @@ export default function ServiceCatalogList({
 
                 <div className="flex shrink-0 gap-2">
                   <button
-                    onClick={() => router.push(`/services-catalog/${s.id}/edit`)}
+                    onClick={() => navigate(`/services-catalog/${s.id}/edit`)}
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm transition duration-200 hover:bg-blue-600 hover:text-white hover:shadow-md dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-600 dark:hover:text-white"
                     title="Edit service"
                   >
@@ -198,7 +200,7 @@ export default function ServiceCatalogList({
                       <div className="flex justify-end gap-2 sm:gap-3">
                         <button
                           onClick={() =>
-                            router.push(`/services-catalog/${s.id}/edit`)
+                            navigate(`/services-catalog/${s.id}/edit`)
                           }
                           className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm transition duration-200 hover:bg-blue-600 hover:text-white hover:shadow-md dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-600 dark:hover:text-white sm:h-10 sm:w-10"
                           title="Edit service"

@@ -1,6 +1,6 @@
 "use client";
 import { EmailIcon, PasswordIcon } from "@/assets/icons";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import React, { useState } from "react";
 import InputGroup from "../FormElements/InputGroup";
 import { Checkbox } from "../FormElements/checkbox";
@@ -50,7 +50,7 @@ export default function SigninWithPassword() {
         />
 
         <Link
-          href="/auth/forgot-password"
+          to="/auth/forgot-password"
           className="hover:text-primary dark:text-white dark:hover:text-primary"
         >
           Forgot Password?

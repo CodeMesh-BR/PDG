@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import {
   Company,
   Service,
@@ -10,7 +12,7 @@ import {
   StartServiceResponse,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/proxy";
+const API_URL = API_BASE_URL;
 
 function authHeaders(): HeadersInit {
   const token =

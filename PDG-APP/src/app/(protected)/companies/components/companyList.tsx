@@ -1,8 +1,10 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { Company } from "../useCompanies";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Pencil, Star, Trash2 } from "lucide-react";
 
 interface Props {
@@ -13,7 +15,7 @@ interface Props {
 
 export default function CompanyList({ companies, onRefresh, view }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this company?")) return;
@@ -24,7 +26,7 @@ export default function CompanyList({ companies, onRefresh, view }: Props) {
       if (!token) throw new Error("Unauthorized");
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/companies/${id}`,
+        `${API_BASE_URL}/companies/${id}`,
         {
           method: "DELETE",
           headers: {
@@ -152,7 +154,7 @@ export default function CompanyList({ companies, onRefresh, view }: Props) {
 
                   <div className="flex shrink-0 gap-2">
                     <button
-                      onClick={() => router.push(`/companies/${c.id}/edit`)}
+                      onClick={() => navigate(`/companies/${c.id}/edit`)}
                       className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm transition duration-200 hover:bg-blue-600 hover:text-white hover:shadow-md dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-600 dark:hover:text-white"
                       title="Edit"
                     >
@@ -246,7 +248,7 @@ export default function CompanyList({ companies, onRefresh, view }: Props) {
                     <td className="px-2 py-2 sm:px-4 sm:py-3">
                       <div className="flex justify-end gap-2 sm:gap-3">
                         <button
-                          onClick={() => router.push(`/companies/${c.id}/edit`)}
+                          onClick={() => navigate(`/companies/${c.id}/edit`)}
                           className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm transition duration-200 hover:bg-blue-600 hover:text-white hover:shadow-md dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-600 dark:hover:text-white sm:h-10 sm:w-10"
                           title="Edit"
                         >

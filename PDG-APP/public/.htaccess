@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /PDG-DOM/
+
+    # Serve arquivos e pastas existentes diretamente (assets, imagens...).
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Qualquer outra rota cai no SPA.
+    RewriteRule ^ index.html [L]
+</IfModule>

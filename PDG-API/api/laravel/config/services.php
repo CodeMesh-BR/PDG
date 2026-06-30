@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'google_vision' => [
+        // Caminho absoluto para o JSON da conta de serviço do Google Cloud Vision.
+        'credentials' => env('GOOGLE_APPLICATION_CREDENTIALS'),
+    ],
+
 ];

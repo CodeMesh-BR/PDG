@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { useServicesCatalog } from "../../services-catalog/useServicesCatalog";
@@ -116,7 +118,7 @@ export default function CompanyForm({ onSuccess }: Props) {
       if (!token) throw new Error("Unauthorized");
 
       const existingRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/companies`,
+        `${API_BASE_URL}/companies`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -160,7 +162,7 @@ export default function CompanyForm({ onSuccess }: Props) {
         ? selectedServices
         : [...selectedServices, defaultServiceId!];
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/companies`, {
+      const res = await fetch(`${API_BASE_URL}/companies`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { ChevronUpIcon } from "@/assets/icons";
 import {
   Dropdown,
@@ -7,9 +9,8 @@ import {
   DropdownTrigger,
 } from "@/components/ui/dropdown";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { LogOut, Settings } from "lucide-react";
 
 interface UserProfile {
@@ -26,18 +27,18 @@ export function UserInfo() {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingLogout, setLoadingLogout] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          router.replace("/auth/sign-in");
+          navigate("/auth/sign-in", { replace: true });
           return;
         }
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+        const res = await fetch(`${API_BASE_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -54,12 +55,12 @@ export function UserInfo() {
         setUser(profile);
       } catch (err) {
         console.error("Error loading user:", err);
-        router.replace("/auth/sign-in");
+        navigate("/auth/sign-in", { replace: true });
       }
     };
 
     fetchUser();
-  }, [router]);
+  }, [navigate]);
 
   const handleLogout = async () => {
     try {
@@ -67,7 +68,7 @@ export function UserInfo() {
       const token = localStorage.getItem("token");
 
       if (token) {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -79,12 +80,12 @@ export function UserInfo() {
       localStorage.removeItem("token");
       localStorage.removeItem("role");
       setIsOpen(false);
-      router.replace("/auth/sign-in");
+      navigate("/auth/sign-in", { replace: true });
     } catch (err) {
       console.error("Logout failed:", err);
       localStorage.removeItem("token");
       localStorage.removeItem("role");
-      router.replace("/auth/sign-in");
+      navigate("/auth/sign-in", { replace: true });
     } finally {
       setLoadingLogout(false);
     }
@@ -128,7 +129,7 @@ export function UserInfo() {
 
         <div className="p-2 text-base text-[#4B5563] dark:text-dark-6">
           <Link
-            href={"/profile"}
+            to={"/profile"}
             onClick={() => setIsOpen(false)}
             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] hover:bg-gray-2 hover:text-dark dark:hover:bg-dark-3 dark:hover:text-white"
           >

@@ -2,7 +2,7 @@
 
 import InputGroup from "@/components/FormElements/InputGroup";
 import { EmailIcon } from "@/assets/icons";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { useForgotPassword } from "./useForgotPassword";
 
 export default function ForgotPasswordPage() {
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
       </form>
 
       <Link
-        href="/auth/sign-in"
+        to="/auth/sign-in"
         className="mt-6 inline-block text-sm text-primary hover:underline"
       >
         ← Back to Sign In

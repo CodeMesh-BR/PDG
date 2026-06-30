@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
@@ -104,7 +106,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
         availability,
       };
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+      const res = await fetch(`${API_BASE_URL}/users`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -127,7 +129,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
         fd.append("contract_pdf", contractPdf);
 
         const uploadRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/users/${createdUserId}`,
+          `${API_BASE_URL}/users/${createdUserId}`,
           {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },

@@ -1,10 +1,10 @@
 "use client";
 
-import { use } from "react";
+import { useParams } from "react-router-dom";
 import EditCompanyPage from "./EditCompanyPage";
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function Page() {
+  const { id } = useParams<{ id: string }>();
 
   return <EditCompanyPage id={Number(id)} />;
 }

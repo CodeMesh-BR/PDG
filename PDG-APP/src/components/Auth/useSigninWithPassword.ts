@@ -1,7 +1,9 @@
 'use client';
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 
 interface SigninData {
   email: string;
@@ -18,7 +20,7 @@ export function useSigninWithPassword() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
+  const navigate = useNavigate();
 
 const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   setError('');
@@ -35,7 +37,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +67,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const role = (result.user?.role || "").toLowerCase();
       localStorage.setItem("role", role);
 
-      router.push(role === "detailer" ? "/start-service" : "/");
+      navigate(role === "detailer" ? "/start-service" : "/");
     } catch (err: any) {
       setError(err.message);
     } finally {

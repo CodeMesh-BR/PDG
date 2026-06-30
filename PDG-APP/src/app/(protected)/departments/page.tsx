@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState } from "react";
 import { Pencil, Trash2, X } from "lucide-react";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
@@ -61,8 +63,8 @@ export default function DepartmentsPage() {
       if (!token) throw new Error("Unauthorized");
 
       const url = editing
-        ? `${process.env.NEXT_PUBLIC_API_URL}/departments/${editing.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/departments`;
+        ? `${API_BASE_URL}/departments/${editing.id}`
+        : `${API_BASE_URL}/departments`;
 
       const res = await fetch(url, {
         method: editing ? "PUT" : "POST",
@@ -111,7 +113,7 @@ export default function DepartmentsPage() {
       if (!token) throw new Error("Unauthorized");
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/departments/${department.id}`,
+        `${API_BASE_URL}/departments/${department.id}`,
         {
           method: "DELETE",
           headers: {

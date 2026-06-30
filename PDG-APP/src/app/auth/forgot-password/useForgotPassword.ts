@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState } from "react";
 
 export function useForgotPassword() {
@@ -16,7 +18,7 @@ export function useForgotPassword() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`,
+        `${API_BASE_URL}/auth/forgot-password`,
         {
           method: "POST",
           headers: {

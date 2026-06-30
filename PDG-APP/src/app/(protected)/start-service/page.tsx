@@ -6,12 +6,12 @@ import StartServiceForm from "./components/StartServiceForm";
 import StartServiceList from "./components/StartServiceList";
 import { deleteServiceLog } from "./api";
 import { ServiceLog } from "./types";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 
 export default function StartServicePage() {
   const service = useStartService();
   const [refreshing, setRefreshing] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
   const selectedDate = service.selectedDate;
   const [year, month, day] = selectedDate.split("-");
   const formattedDate = `${day}/${month}/${year}`;
@@ -29,7 +29,7 @@ export default function StartServicePage() {
   };
 
   const handleEdit = (log: ServiceLog) => {
-    router.push(`/start-service/${log.id}/edit`);
+    navigate(`/start-service/${log.id}/edit`);
   };
 
   return (

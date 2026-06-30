@@ -107,7 +107,12 @@ class PlateOcrController extends Controller
                 }
             }
 
-            $client = new ImageAnnotatorClient(['transport' => 'rest']);
+            $clientOptions = ['transport' => 'rest'];
+            $visionCredentials = config('services.google_vision.credentials');
+            if (!empty($visionCredentials)) {
+                $clientOptions['credentials'] = $visionCredentials;
+            }
+            $client = new ImageAnnotatorClient($clientOptions);
 
             $img = (new Image())->setContent($imageContent);
 

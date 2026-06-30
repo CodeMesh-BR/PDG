@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 export type CompanyToday = {
@@ -19,7 +21,7 @@ export function useTodayByCompany() {
         if (!token) throw new Error("Unauthorized");
 
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/dashboard/today-by-company`,
+          `${API_BASE_URL}/dashboard/today-by-company`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

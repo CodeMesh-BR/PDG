@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 export type ChartPoint = {
@@ -29,7 +31,7 @@ export function useDashboardOverview() {
         if (!token) throw new Error("Unauthorized");
 
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/dashboard/overview`,
+          `${API_BASE_URL}/dashboard/overview`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

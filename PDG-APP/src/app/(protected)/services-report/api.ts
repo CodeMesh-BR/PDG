@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 export type ReportFilters = {
   user_id?: number;
   company_id?: number;
@@ -19,7 +21,7 @@ export async function fetchReportServices(params: ReportFilters = {}) {
 
   const token = localStorage.getItem("token");
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/services?` + qs.toString(), {
+  const res = await fetch(`${API_BASE_URL}/reports/services?` + qs.toString(), {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -32,7 +34,7 @@ export async function fetchReportServices(params: ReportFilters = {}) {
 export async function fetchUsers() {
   const token = localStorage.getItem("token");
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+  const res = await fetch(`${API_BASE_URL}/users`, {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,

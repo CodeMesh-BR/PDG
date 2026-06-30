@@ -1,7 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { EmployeeListItem } from "../../useEmployees";
 import { Pencil, Trash2, FileText } from "lucide-react";
 
@@ -12,7 +14,7 @@ interface Props {
 }
 
 export default function EmployeeList({ users, onRefresh, view }: Props) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const dayLabels: Record<string, string> = {
@@ -34,7 +36,7 @@ export default function EmployeeList({ users, onRefresh, view }: Props) {
       if (!token) throw new Error("Unauthorized");
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
+        `${API_BASE_URL}/users/${id}`,
         {
           method: "DELETE",
           headers: {
@@ -56,7 +58,7 @@ export default function EmployeeList({ users, onRefresh, view }: Props) {
   };
 
   const handleEdit = (id: number) => {
-    router.push(`/employees/${id}/edit`);
+    navigate(`/employees/${id}/edit`);
   };
 
   if (users.length === 0) {

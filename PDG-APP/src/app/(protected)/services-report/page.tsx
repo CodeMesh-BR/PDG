@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import { fetchUsers, fetchReportServices, ReportFilters } from "./api";
 import { Button } from "@/components/ui-elements/button";
@@ -19,7 +21,7 @@ export default function ServicesReportPage() {
 
     fetchUsers().then(setUsers);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/companies`, {
+    fetch(`${API_BASE_URL}/companies`, {
       headers: { Authorization: "Bearer " + localStorage.getItem("token") },
     })
       .then((r) => r.json())

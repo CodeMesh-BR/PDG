@@ -1,16 +1,18 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { Sidebar } from "@/components/Layouts/sidebar";
 import { Header } from "@/components/Layouts/header";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 export default function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const [role, setRole] = useState<string | null>(null);
   const [checkedRole, setCheckedRole] = useState(false);
 
@@ -40,7 +42,7 @@ export default function ClientLayout({
 
     const fetchRole = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+        const res = await fetch(`${API_BASE_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",

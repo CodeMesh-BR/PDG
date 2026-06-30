@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
+
 import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
@@ -71,7 +73,7 @@ export default function ServiceCatalogForm({ onSuccess }: Props) {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
+      const res = await fetch(`${API_BASE_URL}/services`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
