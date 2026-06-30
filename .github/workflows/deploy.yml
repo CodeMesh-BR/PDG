@@ -1,0 +1,135 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- Frontend (Vite/React) ----
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Frontend install
+        working-directory: PDG-APP
+        run: yarn install --immutable
+
+      - name: Frontend lint (tsc --noEmit)
+        working-directory: PDG-APP
+        run: yarn lint
+
+      # ---- API (Laravel) ----
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, pdo_sqlite, intl, gd
+          coverage: none
+
+      - name: Composer install
+        working-directory: PDG-API/api/laravel
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare test env
+        working-directory: PDG-API/api/laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: API tests
+        working-directory: PDG-API/api/laravel
+        run: php artisan test
+
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install & build
+        working-directory: PDG-APP
+        run: |
+          yarn install --immutable
+          yarn build
+
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync dist to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -p ${{ secrets.SSH_PORT }}" \
+            PDG-APP/dist/ \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.FRONTEND_PATH }}/"
+
+  deploy-api:
+    name: Deploy API
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync Laravel to server
+        run: |
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude 'vendor/' \
+            --exclude 'node_modules/' \
+            --exclude '.env' \
+            --exclude 'storage/logs/*.log' \
+            --exclude 'bootstrap/cache/*' \
+            -e "ssh -p ${{ secrets.SSH_PORT }}" \
+            PDG-API/api/laravel/ \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.API_PATH }}/"
+
+      - name: Run Laravel deploy commands
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd '${{ secrets.API_PATH }}' && \
+             composer install --no-dev --optimize-autoloader --no-interaction && \
+             php artisan optimize:clear && \
+             php artisan migrate --force && \
+             php artisan storage:link || true && \
+             php artisan config:cache && \
+             php artisan route:cache"

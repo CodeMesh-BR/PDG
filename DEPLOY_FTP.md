@@ -1,4 +1,45 @@
-# Deploy FTP/cPanel
+# Deploy
+
+> ## ⚙️ Deploy automático (CI/CD)
+>
+> O deploy agora é **automático via GitHub Actions** a cada push na branch
+> `main` (`.github/workflows/deploy.yml`). O fluxo manual por FTP abaixo fica
+> como referência/fallback.
+>
+> **Pipeline:** `test` (lint front `tsc --noEmit` + `php artisan test`) → e, se
+> passar, `deploy-frontend` (build Vite + rsync do `dist/`) e `deploy-api`
+> (rsync do Laravel + `composer install`/`migrate`/caches por SSH) em paralelo.
+>
+> ### Secrets no GitHub (Settings → Secrets and variables → Actions)
+> | Secret | Valor |
+> |---|---|
+> | `SSH_HOST` | host do cPanel (ex.: `eihpostech.com` ou IP) |
+> | `SSH_PORT` | porta SSH do cPanel (geralmente **não** é 22) |
+> | `SSH_USER` | usuário do cPanel |
+> | `SSH_PRIVATE_KEY` | chave privada SSH (par dedicado; a **pública** vai em cPanel → SSH Access → autorizar) |
+> | `FRONTEND_PATH` | caminho absoluto do frontend, ex.: `/home/USER/eihpostech.com/PDG-DOM` |
+> | `API_PATH` | caminho absoluto do Laravel, ex.: `/home/USER/api.eihpostech.com/laravel` |
+>
+> ### Bootstrap (passo único, manual via SSH — NÃO está no workflow)
+> Na primeira instalação, ou ao recriar o ambiente, rode no servidor dentro de
+> `API_PATH` (o workflow recorrente **não** faz isso para não regenerar a
+> `APP_KEY` nem re-semear dados):
+> ```bash
+> php artisan key:generate --force
+> php artisan migrate --force
+> php artisan db:seed --force
+> php artisan storage:link
+> ```
+> O `.env` de produção permanece no servidor e **não** é sobrescrito pelo deploy.
+>
+> ### Pré-requisitos a confirmar no servidor
+> - `php` 8.2+ e `composer` disponíveis no PATH do SSH não-interativo (se não,
+>   usar caminho completo, ex.: `/usr/local/bin/ea-php82`).
+> - Porta SSH correta e chave pública autorizada no cPanel.
+
+---
+
+## Deploy manual (FTP/cPanel) — fallback
 
 Arquitetura **separada** (dois endereços):
 
