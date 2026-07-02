@@ -10,6 +10,7 @@ class ServiceLog extends Model
         'user_id',
         'company_id',
         'service_id',
+        'department_id',
         'car_plate',
         'vehicle_condition',
         'stock_number',
@@ -35,5 +36,10 @@ class ServiceLog extends Model
     public function service()
     {
         return $this->belongsTo(\App\Models\Service::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(\App\Models\Department::class);
     }
 }

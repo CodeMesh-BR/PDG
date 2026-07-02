@@ -15,6 +15,7 @@ import {
   sendOcrImage,
   startServiceLog,
 } from "./api";
+import { useDepartments, Department } from "../departments/useDepartments";
 
 const OCR_MAX_DIMENSION = 1024;
 const OCR_MAX_SOURCE_BYTES = 5 * 1024 * 1024;
@@ -28,10 +29,6 @@ function normalizePlateValue(input: string): string {
 
 function normalizeStockNumber(input: string): string {
   return input.trim().toUpperCase();
-}
-
-function isNewUsedService(service?: Service | null): boolean {
-  return service?.department?.name === "New / Used";
 }
 
 function extractPlateCandidate(rawText: string): string {
@@ -284,6 +281,12 @@ export interface UseStartServiceResult {
   loadingServices: boolean;
   setSelectedCompany: (id: number | null) => void;
   setSelectedService: (id: number | null) => void;
+  departments: Department[];
+  loadingDepartments: boolean;
+  selectedDepartment: number | null;
+  setSelectedDepartment: (id: number | null) => void;
+  requiresNewUsed: boolean;
+  refreshDepartments: () => Promise<void>;
   vehicleImage: File | null;
   ocrData: OcrResponse | null;
   loadingOcr: boolean;
@@ -347,9 +350,23 @@ export function useStartService(): UseStartServiceResult {
     null,
   );
 
+  const {
+    departments,
+    loading: loadingDepartments,
+    refresh: refreshDepartments,
+  } = useDepartments();
+  const [selectedDepartment, setSelectedDepartmentState] = useState<
+    number | null
+  >(null);
+
+  const setSelectedDepartment = (id: number | null) => {
+    setSelectedDepartmentState(id);
+  };
+
   const setSelectedCompany = (id: number | null) => {
     setSelectedCompanyState(id);
     setSelectedServiceState(null);
+    setSelectedDepartmentState(null);
     setServices([]);
     setPlate("");
     setVehicleCondition("");
@@ -361,7 +378,20 @@ export function useStartService(): UseStartServiceResult {
     setVehicleCondition("");
     setStockNumber("");
     setPlate("");
+
+    const svc = services.find((item) => item.id === id);
+    setSelectedDepartmentState(svc?.department_id ?? null);
   };
+
+  const selectedServiceData =
+    services.find((item) => item.id === selectedService) ?? null;
+
+  const effectiveDepartment: Department | null =
+    departments.find((d) => d.id === selectedDepartment) ??
+    selectedServiceData?.department ??
+    null;
+
+  const requiresNewUsed = effectiveDepartment?.name === "New / Used";
 
   useEffect(() => {
     const load = async () => {
@@ -508,8 +538,6 @@ export function useStartService(): UseStartServiceResult {
   } | void> => {
     if (!selectedCompany || !selectedService) return;
 
-    const service = services.find((item) => item.id === selectedService);
-    const requiresNewUsed = isNewUsedService(service);
     const normalizedStockNumber = normalizeStockNumber(stockNumber);
 
     if (requiresNewUsed) {
@@ -528,6 +556,7 @@ export function useStartService(): UseStartServiceResult {
     const { status, data } = await startServiceLog({
       company_id: selectedCompany,
       service_id: selectedService,
+      department_id: selectedDepartment,
       car_plate: requiresNewUsed && vehicleCondition === "new" ? null : plate,
       vehicle_condition: payloadVehicleCondition,
       stock_number: requiresNewUsed ? normalizedStockNumber : null,
@@ -551,8 +580,6 @@ export function useStartService(): UseStartServiceResult {
   const confirmStart = async (): Promise<void> => {
     if (!selectedCompany || !selectedService) return;
 
-    const service = services.find((item) => item.id === selectedService);
-    const requiresNewUsed = isNewUsedService(service);
     const normalizedStockNumber = normalizeStockNumber(stockNumber);
 
     if (requiresNewUsed) {
@@ -570,6 +597,7 @@ export function useStartService(): UseStartServiceResult {
     await startServiceLog({
       company_id: selectedCompany,
       service_id: selectedService,
+      department_id: selectedDepartment,
       car_plate: requiresNewUsed && vehicleCondition === "new" ? null : plate,
       vehicle_condition: payloadVehicleCondition,
       stock_number: requiresNewUsed ? normalizedStockNumber : null,
@@ -595,6 +623,12 @@ export function useStartService(): UseStartServiceResult {
     loadingServices,
     setSelectedCompany,
     setSelectedService,
+    departments,
+    loadingDepartments,
+    selectedDepartment,
+    setSelectedDepartment,
+    requiresNewUsed,
+    refreshDepartments,
 
     vehicleImage,
     ocrData,

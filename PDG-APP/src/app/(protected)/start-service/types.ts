@@ -49,6 +49,8 @@ export interface ServiceLog {
   id: number;
   company_id: number;
   service_id: number;
+  department_id?: number | null;
+  department?: Department | null;
   car_plate: string | null;
   vehicle_condition?: VehicleCondition | null;
   stock_number?: string | null;
@@ -76,6 +78,7 @@ export interface ServiceLog {
 export interface StartServicePayload {
   company_id: number;
   service_id: number;
+  department_id?: number | null;
   car_plate?: string | null;
   vehicle_condition?: VehicleCondition | null;
   stock_number?: string | null;
@@ -91,6 +94,7 @@ export interface StartServiceResponse {
     id: number;
     company_id: number;
     service_id: number;
+    department_id?: number | null;
     car_plate: string | null;
     vehicle_condition?: VehicleCondition | null;
     stock_number?: string | null;

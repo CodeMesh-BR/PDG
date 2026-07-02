@@ -27,4 +27,9 @@ class Department extends Model
     {
         return $this->hasMany(Service::class);
     }
+
+    public function serviceLogs()
+    {
+        return $this->hasMany(ServiceLog::class);
+    }
 }
