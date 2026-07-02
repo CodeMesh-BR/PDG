@@ -68,7 +68,7 @@ class DepartmentController extends Controller
 
     public function destroy(Department $department)
     {
-        if ($department->services()->exists()) {
+        if ($department->services()->exists() || $department->serviceLogs()->exists()) {
             return response()->json([
                 'message' => 'Department is attached to one or more services.',
             ], 422);
