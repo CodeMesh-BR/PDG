@@ -48,7 +48,7 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
               const onlyDate = log.performed_at.slice(0, 10);
               const [year, month, day] = onlyDate.split("-");
               const formatted = `${day}/${month}/${year}`;
-              const costValue = log.service.cost_value ?? log.service.value;
+              const costValue = log.service.cost_value;
 
               return (
                 <tr
@@ -85,7 +85,7 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
                   </td>
 
                   <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
-                    ${costValue}
+                    {costValue != null ? `$${costValue}` : "-"}
                   </td>
 
                   <td className="px-2 py-2 sm:px-4 sm:py-3">

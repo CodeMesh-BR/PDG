@@ -16,7 +16,7 @@ export default function StartServicePage() {
   const [year, month, day] = selectedDate.split("-");
   const formattedDate = `${day}/${month}/${year}`;
   const totalValue = service.logs.reduce((sum, log) => {
-    const raw = log.service.cost_value ?? log.service.value ?? "0";
+    const raw = log.service.cost_value ?? "0";
     const value = Number(raw);
     const quantity = log.quantity ?? 1;
     if (Number.isNaN(value)) return sum;

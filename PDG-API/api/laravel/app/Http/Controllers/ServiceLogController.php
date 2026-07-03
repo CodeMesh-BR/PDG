@@ -119,7 +119,7 @@ class ServiceLogController extends Controller
 
         $logs = ServiceLog::with([
             'company:id,name,display_name',
-            'service:id,department_id,type,description,value',
+            'service:id,department_id,type,description,value,cost_value',
             'service.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
             'department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
         ])
