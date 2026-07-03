@@ -23,6 +23,9 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
                 Service
               </th>
               <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
+                Department
+              </th>
+              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
                 Plate
               </th>
               <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
@@ -58,6 +61,10 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
 
                   <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
                     {log.service.type}
+                  </td>
+
+                  <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
+                    {log.department?.name ?? log.service.department?.name ?? "-"}
                   </td>
 
                   <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">

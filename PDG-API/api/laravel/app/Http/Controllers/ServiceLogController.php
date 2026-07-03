@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
+use App\Models\Department;
 use App\Models\ServiceLog;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,6 +17,7 @@ class ServiceLogController extends Controller
         $validated = $request->validate([
             'company_id' => ['required', 'integer', 'exists:companies,id'],
             'service_id' => ['required', 'integer', 'exists:services,id'],
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
             'vehicle_condition' => ['sometimes', 'nullable', Rule::in(['new', 'used'])],
             'stock_number' => ['sometimes', 'nullable', 'string', 'max:50'],
             'car_plate' => ['sometimes', 'nullable', 'string', 'max:20'],
@@ -27,7 +29,7 @@ class ServiceLogController extends Controller
 
         $company = Company::with([
             'services:id,department_id',
-            'services.department:id,name',
+            'services.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
         ])->findOrFail($validated['company_id']);
 
         $service = $company->services->firstWhere('id', $validated['service_id']);
@@ -38,7 +40,15 @@ class ServiceLogController extends Controller
             ], 422);
         }
 
-        $isNewUsed = $service->department?->name === 'New / Used';
+        $effectiveDepartment = $service->department;
+
+        if (!empty($validated['department_id'])) {
+            $effectiveDepartment = Department::select([
+                'id', 'name', 'description', 'bill_by_unit', 'bill_by_hour', 'bill_by_quantity',
+            ])->find($validated['department_id']);
+        }
+
+        $isNewUsed = $effectiveDepartment?->name === 'New / Used';
         $carPlate = $this->normalizeNullableValue($validated['car_plate'] ?? null);
         $stockNumber = $this->normalizeNullableValue($validated['stock_number'] ?? null);
         $vehicleCondition = $validated['vehicle_condition'] ?? null;
@@ -86,6 +96,7 @@ class ServiceLogController extends Controller
             'user_id' => $user->id,
             'company_id' => $validated['company_id'],
             'service_id' => $validated['service_id'],
+            'department_id' => $effectiveDepartment?->id,
             'car_plate' => $carPlate,
             'vehicle_condition' => $vehicleCondition,
             'stock_number' => $stockNumber,
@@ -93,6 +104,8 @@ class ServiceLogController extends Controller
             'quantity' => $validated['quantity'] ?? 1,
             'notes' => $validated['notes'] ?? null,
         ]);
+
+        $log->setRelation('department', $effectiveDepartment);
 
         return response()->json([
             'message' => 'Service entry created successfully.',
@@ -108,6 +121,7 @@ class ServiceLogController extends Controller
             'company:id,name,display_name',
             'service:id,department_id,type,description,value',
             'service.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
+            'department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
         ])
             ->where('user_id', $user->id)
             ->when(
@@ -175,6 +189,17 @@ class ServiceLogController extends Controller
             'id' => $log->id,
             'company_id' => $log->company_id,
             'service_id' => $log->service_id,
+            'department_id' => $log->department_id,
+            'department' => $log->relationLoaded('department') && $log->department
+                ? [
+                    'id' => $log->department->id,
+                    'name' => $log->department->name,
+                    'description' => $log->department->description,
+                    'bill_by_unit' => $log->department->bill_by_unit,
+                    'bill_by_hour' => $log->department->bill_by_hour,
+                    'bill_by_quantity' => $log->department->bill_by_quantity,
+                ]
+                : null,
             'car_plate' => $log->car_plate,
             'vehicle_condition' => $log->vehicle_condition,
             'stock_number' => $log->stock_number,

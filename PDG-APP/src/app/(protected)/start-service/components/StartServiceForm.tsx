@@ -1,6 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui-elements/button";
+import { FormAlert } from "@/components/FormAlerts/FormAlert";
+import { API_BASE_URL } from "@/lib/api";
+import { getBillingModes } from "@/app/(protected)/departments/useDepartments";
 import type { UseStartServiceResult } from "../useStartService";
 import { useEffect, useRef, useState } from "react";
 
@@ -18,6 +21,13 @@ export default function StartServiceForm({
     services,
     selectedCompany,
     selectedService,
+
+    departments,
+    loadingDepartments,
+    selectedDepartment,
+    setSelectedDepartment,
+    requiresNewUsed,
+    refreshDepartments,
 
     ocrData,
     duplicateWarning,
@@ -63,9 +73,68 @@ export default function StartServiceForm({
   const galleryInputId = "plate-photo-input";
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
-  const selectedServiceData =
-    services.find((item) => Number(item.id) === Number(selectedService)) ?? null;
-  const requiresNewUsed = selectedServiceData?.department?.name === "New / Used";
+
+  const [showNewDepartmentForm, setShowNewDepartmentForm] = useState(false);
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newDeptBillUnit, setNewDeptBillUnit] = useState(false);
+  const [newDeptBillHour, setNewDeptBillHour] = useState(false);
+  const [newDeptBillQuantity, setNewDeptBillQuantity] = useState(false);
+  const [newDeptError, setNewDeptError] = useState("");
+  const [newDeptSaving, setNewDeptSaving] = useState(false);
+
+  const handleCreateDepartment = async () => {
+    setNewDeptError("");
+
+    if (newDeptName.trim().length < 2) {
+      setNewDeptError("Name must be at least 2 characters.");
+      return;
+    }
+
+    if (!newDeptBillUnit && !newDeptBillHour && !newDeptBillQuantity) {
+      setNewDeptError("Select at least one billing mode.");
+      return;
+    }
+
+    try {
+      setNewDeptSaving(true);
+
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Unauthorized");
+
+      const res = await fetch(`${API_BASE_URL}/departments`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: newDeptName.trim(),
+          bill_by_unit: newDeptBillUnit,
+          bill_by_hour: newDeptBillHour,
+          bill_by_quantity: newDeptBillQuantity,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create department");
+      }
+
+      await refreshDepartments();
+      setSelectedDepartment(data.data.id);
+      setShowNewDepartmentForm(false);
+      setNewDeptName("");
+      setNewDeptBillUnit(false);
+      setNewDeptBillHour(false);
+      setNewDeptBillQuantity(false);
+    } catch (err: any) {
+      setNewDeptError(err.message);
+    } finally {
+      setNewDeptSaving(false);
+    }
+  };
+
   const requiresPlateInput = !requiresNewUsed || vehicleCondition === "used";
   const requiresStockNumber = requiresNewUsed;
   const showVehiclePhotoInput = !requiresNewUsed || Boolean(vehicleCondition);
@@ -160,6 +229,85 @@ export default function StartServiceForm({
           </option>
         ))}
       </select>
+
+      <label className="mb-1 block text-sm">Department (optional override)</label>
+      <select
+        className="mb-4 w-full rounded border p-2 dark:text-white dark:placeholder:text-white"
+        disabled={!selectedService || loadingDepartments}
+        value={selectedDepartment ?? ""}
+        onChange={(e) => {
+          if (e.target.value === "__new__") {
+            setShowNewDepartmentForm(true);
+            return;
+          }
+          setSelectedDepartment(e.target.value ? Number(e.target.value) : null);
+        }}
+      >
+        <option value="">Use service's default department</option>
+        {loadingDepartments && <option disabled>Loading departments...</option>}
+        {departments.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name} ({getBillingModes(d)})
+          </option>
+        ))}
+        <option value="__new__">+ New department...</option>
+      </select>
+
+      {showNewDepartmentForm && (
+        <div className="mb-4 rounded border border-dashed p-3">
+          <p className="mb-2 text-sm font-medium">New department</p>
+          {newDeptError && <FormAlert type="error" message={newDeptError} />}
+          <input
+            type="text"
+            placeholder="Department name *"
+            value={newDeptName}
+            onChange={(e) => setNewDeptName(e.target.value)}
+            className="mb-2 w-full rounded border p-2 dark:bg-gray-800 dark:text-white"
+          />
+          <div className="mb-2 flex flex-wrap gap-3 text-sm">
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={newDeptBillUnit}
+                onChange={(e) => setNewDeptBillUnit(e.target.checked)}
+              />
+              Bill by unit
+            </label>
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={newDeptBillHour}
+                onChange={(e) => setNewDeptBillHour(e.target.checked)}
+              />
+              Bill by hour
+            </label>
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={newDeptBillQuantity}
+                onChange={(e) => setNewDeptBillQuantity(e.target.checked)}
+              />
+              Bill by quantity
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              label={newDeptSaving ? "Saving..." : "Create department"}
+              type="button"
+              onClick={handleCreateDepartment}
+              disabled={newDeptSaving}
+              size="small"
+            />
+            <Button
+              label="Cancel"
+              type="button"
+              variant="dark"
+              size="small"
+              onClick={() => setShowNewDepartmentForm(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {requiresNewUsed && (
         <>
