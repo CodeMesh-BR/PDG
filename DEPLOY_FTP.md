@@ -8,7 +8,7 @@
 >
 > **Pipeline:** `test` (lint front `tsc --noEmit` + `php artisan test`) → e, se
 > passar, `deploy-frontend` (build Vite + rsync do `dist/`) e `deploy-api`
-> (rsync do Laravel + `composer install`/`migrate`/caches por SSH) em paralelo.
+> (build das dependências no runner + rsync do Laravel + `migrate`/caches por SSH) em paralelo.
 >
 > ### Secrets no GitHub (Settings → Secrets and variables → Actions)
 > | Secret | Valor |
@@ -33,8 +33,8 @@
 > O `.env` de produção permanece no servidor e **não** é sobrescrito pelo deploy.
 >
 > ### Pré-requisitos a confirmar no servidor
-> - `php` 8.2+ e `composer` disponíveis no PATH do SSH não-interativo (se não,
->   usar caminho completo, ex.: `/usr/local/bin/ea-php82`).
+> - `php` 8.2+ disponível no PATH do SSH não-interativo (se não, usar caminho
+>   completo, ex.: `/usr/local/bin/ea-php82`). O Composer é executado no runner.
 > - Porta SSH correta e chave pública autorizada no cPanel.
 
 ---
