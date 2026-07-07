@@ -5,6 +5,7 @@ import { API_BASE_URL } from "@/lib/api";
 import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
+import { useCompanies } from "../../../companies/useCompanies";
 
 interface Props {
   onSuccess?: () => void;
@@ -22,7 +23,10 @@ export default function EmployeeForm({ onSuccess }: Props) {
   });
 
   const [availability, setAvailability] = useState<string[]>([]);
+  const [companyIds, setCompanyIds] = useState<number[]>([]);
   const [contractPdf, setContractPdf] = useState<File | null>(null);
+
+  const { companies } = useCompanies({ perPage: 100 });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -53,6 +57,12 @@ export default function EmployeeForm({ onSuccess }: Props) {
   const toggleDay = (day: string) => {
     setAvailability((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+    );
+  };
+
+  const toggleCompany = (id: number) => {
+    setCompanyIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
     );
   };
 
@@ -104,6 +114,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
       const payload = {
         ...form,
         availability,
+        company_ids: companyIds,
       };
 
       const res = await fetch(`${API_BASE_URL}/users`, {
@@ -153,6 +164,7 @@ export default function EmployeeForm({ onSuccess }: Props) {
         role: "",
       });
       setAvailability([]);
+      setCompanyIds([]);
       setContractPdf(null);
 
       setSuccess("Employee created successfully!");
@@ -257,6 +269,22 @@ export default function EmployeeForm({ onSuccess }: Props) {
                 onChange={() => toggleDay(d.key)}
               />
               {d.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <label className="mb-2 block font-semibold">Allowed Companies</label>
+        <div className="grid grid-cols-2 gap-2 dark:text-white md:grid-cols-3">
+          {companies.map((c) => (
+            <label key={c.id} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={companyIds.includes(c.id)}
+                onChange={() => toggleCompany(c.id)}
+              />
+              {c.display_name || c.name}
             </label>
           ))}
         </div>

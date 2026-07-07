@@ -4,6 +4,7 @@ import { API_BASE_URL } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useCompanies } from "../../../companies/useCompanies";
 
 export interface Employee {
   id: number;
@@ -14,6 +15,7 @@ export interface Employee {
   address?: string;
   phone?: string;
   availability?: string[];
+  companies?: { id: number; name: string; display_name?: string }[];
   contract_pdf_path?: string;
   password?: string;
   password_confirmation?: string;
@@ -25,7 +27,10 @@ export function useEditEmployee() {
 
   const [user, setUser] = useState<Employee | null>(null);
   const [availability, setAvailability] = useState<string[]>([]);
+  const [companyIds, setCompanyIds] = useState<number[]>([]);
   const [contractPdf, setContractPdf] = useState<File | null>(null);
+
+  const { companies } = useCompanies({ perPage: 100 });
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,6 +69,7 @@ export function useEditEmployee() {
         const data = await res.json();
         setUser(data.data);
         setAvailability(data.data.availability || []);
+        setCompanyIds((data.data.companies || []).map((c: any) => c.id));
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -84,6 +90,12 @@ export function useEditEmployee() {
       prev.includes(day)
         ? prev.filter((d) => d !== day)
         : [...prev, day]
+    );
+  };
+
+  const toggleCompany = (id: number) => {
+    setCompanyIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     );
   };
 
@@ -128,6 +140,8 @@ Object.entries(payload).forEach(([key, value]) => {
     }
   }
 });
+      formData.append("company_ids_provided", "1");
+      companyIds.forEach((cid) => formData.append("company_ids[]", String(cid)));
 
       const res = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: "POST", 
@@ -179,6 +193,8 @@ Object.entries(payload).forEach(([key, value]) => {
     user,
     availability,
     weekDays,
+    companies,
+    companyIds,
     contractPdf,
     loading,
     saving,
@@ -187,6 +203,7 @@ Object.entries(payload).forEach(([key, value]) => {
 
     handleChange,
     toggleDay,
+    toggleCompany,
     handleContractUpload,
     handleSave,
   };

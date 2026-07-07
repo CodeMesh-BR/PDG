@@ -9,15 +9,17 @@ use Illuminate\Validation\Rule;
 class CompanyController extends Controller
 {
     // GET /api/companies
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = min((int) $request->query('per_page', 15), 500);
+
         $companies = \App\Models\Company::with(['services' => function ($q) {
             $q->select('services.id', 'department_id', 'type', 'description', 'value')
                 ->with('department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity');
         }])
             ->select('id', 'name', 'display_name', 'email', 'address', 'phone', 'default_service_id', 'created_at')
             ->orderByDesc('id')
-            ->paginate(15);
+            ->paginate($perPage);
 
         return response()->json($companies);
     }

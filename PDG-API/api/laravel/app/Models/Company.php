@@ -30,4 +30,9 @@ class Company extends Model
     {
         return $this->belongsTo(\App\Models\Service::class, 'default_service_id');
     }
+
+    public function users()
+    {
+        return $this->belongsToMany(\App\Models\User::class, 'company_user')->withTimestamps();
+    }
 }

@@ -145,6 +145,29 @@ export default function EmployeeList({ users, onRefresh, view }: Props) {
                   </div>
                 )}
               </div>
+
+              <div className="mt-3">
+                <div className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Companies:
+                </div>
+
+                {u.companies?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {u.companies.map((c) => (
+                      <span
+                        key={c.id}
+                        className="rounded-full border border-green-300 bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:border-green-800 dark:bg-green-900/40 dark:text-green-200"
+                      >
+                        {c.display_name || c.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm italic text-gray-400 dark:text-gray-400">
+                    No companies assigned.
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -165,6 +188,9 @@ export default function EmployeeList({ users, onRefresh, view }: Props) {
                   </th>
                   <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
                     Availability
+                  </th>
+                  <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
+                    Companies
                   </th>
                   <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
                     Contract
@@ -209,6 +235,30 @@ export default function EmployeeList({ users, onRefresh, view }: Props) {
                           {u.availability.length > 5 && (
                             <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] text-gray-700 dark:bg-gray-700 dark:text-gray-200 sm:px-2.5 sm:py-1 sm:text-xs">
                               +{u.availability.length - 5}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] italic text-gray-400 dark:text-gray-400 sm:text-xs">
+                          -
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-2 py-2 sm:px-4 sm:py-3">
+                      {u.companies?.length ? (
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                          {u.companies.slice(0, 5).map((c) => (
+                            <span
+                              key={c.id}
+                              className="rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:border-green-800 dark:bg-green-900/40 dark:text-green-200 sm:px-2.5 sm:py-1 sm:text-xs"
+                            >
+                              {c.display_name || c.name}
+                            </span>
+                          ))}
+                          {u.companies.length > 5 && (
+                            <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] text-gray-700 dark:bg-gray-700 dark:text-gray-200 sm:px-2.5 sm:py-1 sm:text-xs">
+                              +{u.companies.length - 5}
                             </span>
                           )}
                         </div>

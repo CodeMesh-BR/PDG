@@ -30,7 +30,8 @@ export interface Company {
   }[];
 }
 
-export function useCompanies() {
+export function useCompanies(opts?: { perPage?: number }) {
+  const perPage = opts?.perPage ?? 15;
   const [companies, setCompanies] = useState<Company[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -44,7 +45,7 @@ export function useCompanies() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch(`${API_BASE_URL}/companies`, {
+      const res = await fetch(`${API_BASE_URL}/companies?per_page=${perPage}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",

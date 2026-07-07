@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\ServiceLog;
+use App\Traits\RestrictsCompanyAccess;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ServiceLogController extends Controller
 {
+    use RestrictsCompanyAccess;
+
     public function store(Request $request)
     {
         $user = $request->user();
@@ -26,6 +29,12 @@ class ServiceLogController extends Controller
             'notes' => ['sometimes', 'string', 'max:1000'],
             'force' => ['sometimes', 'boolean'],
         ]);
+
+        if (!$this->ensureCompanyAllowed($user, $validated['company_id'])) {
+            return response()->json([
+                'message' => 'You are not allowed to log services for this company.',
+            ], 403);
+        }
 
         $company = Company::with([
             'services:id,department_id',
@@ -132,6 +141,7 @@ class ServiceLogController extends Controller
                 $request->filled('date'),
                 fn($q) => $q->whereDate('performed_at', $request->input('date'))
             )
+            ->tap(fn($q) => $this->applyCompanyRestriction($q, $user, 'company_id'))
             ->orderByDesc('performed_at')
             ->orderByDesc('id')
             ->paginate(20);
@@ -139,8 +149,17 @@ class ServiceLogController extends Controller
         return response()->json($logs);
     }
 
-    public function destroy(ServiceLog $serviceLog)
+    public function destroy(Request $request, ServiceLog $serviceLog)
     {
+        $user = $request->user();
+
+        if ($user->isRestrictedToCompanies()) {
+            $allowed = $this->ensureCompanyAllowed($user, $serviceLog->company_id);
+            if ($serviceLog->user_id !== $user->id || !$allowed) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
+        }
+
         $serviceLog->delete();
 
         return response()->json([

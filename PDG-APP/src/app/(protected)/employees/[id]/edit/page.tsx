@@ -9,6 +9,8 @@ export default function EditEmployeePage() {
     user,
     availability,
     weekDays,
+    companies,
+    companyIds,
     contractPdf,
     loading,
     saving,
@@ -16,6 +18,7 @@ export default function EditEmployeePage() {
     success,
     handleChange,
     toggleDay,
+    toggleCompany,
     handleContractUpload,
     handleSave,
   } = useEditEmployee();
@@ -99,6 +102,22 @@ export default function EditEmployeePage() {
                   onChange={() => toggleDay(d.key)}
                 />
                 {d.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <label className="mb-1 block font-medium">Allowed Companies</label>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+            {companies.map((c) => (
+              <label key={c.id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={companyIds.includes(c.id)}
+                  onChange={() => toggleCompany(c.id)}
+                />
+                {c.display_name || c.name}
               </label>
             ))}
           </div>

@@ -34,4 +34,27 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Service::class, 'service_user')->withTimestamps();
     }
+
+    public function companies()
+    {
+        return $this->belongsToMany(Company::class, 'company_user')->withTimestamps();
+    }
+
+    public function isRestrictedToCompanies(): bool
+    {
+        return in_array(strtolower(trim((string) $this->role)), ['detailer', 'client'], true);
+    }
+
+    /**
+     * Null means unrestricted (sees every company); an array (possibly empty)
+     * means the user is limited to those company IDs.
+     */
+    public function allowedCompanyIds(): ?array
+    {
+        if (!$this->isRestrictedToCompanies()) {
+            return null;
+        }
+
+        return $this->companies()->pluck('companies.id')->all();
+    }
 }

@@ -15,6 +15,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
        $query = User::query()
+    ->with('companies:id,name,display_name')
     ->select('id', 'display_name', 'full_name', 'email', 'role', 'availability', 'contract_pdf_path', 'created_at')
     ->orderByDesc('id');
 
@@ -39,6 +40,9 @@ class UserController extends Controller
 
             'contract_pdf'         => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
             'work_certificate_pdf' => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
+
+            'company_ids'   => ['sometimes', 'array'],
+            'company_ids.*' => ['integer', 'exists:companies,id'],
         ], [
             'password.regex' => 'Password must be 8-16 characters long, with letters and numbers.',
         ]);
@@ -70,6 +74,11 @@ class UserController extends Controller
 
         $user->fill($validated)->save();
 
+        if ($request->has('company_ids') || $request->boolean('company_ids_provided')) {
+            $user->companies()->sync($request->array('company_ids'));
+        }
+        $user->load('companies:id,name,display_name');
+
         return response()->json([
             'message' => 'User updated successfully.',
             'data' => [
@@ -81,6 +90,7 @@ class UserController extends Controller
                 'availability'              => $user->availability,
                 'contract_pdf_path'         => $user->contract_pdf_path,
                 'work_certificate_pdf_path' => $user->work_certificate_pdf_path,
+                'companies'                 => $user->companies,
                 'updated_at'                => $user->updated_at,
             ],
         ]);
@@ -89,7 +99,7 @@ class UserController extends Controller
     // GET /api/users/{user}
     public function show(User $user)
     {
-        $user->loadMissing('services:id,type,value');
+        $user->loadMissing('services:id,type,value', 'companies:id,name,display_name');
 
         return response()->json([
             'data' => [
@@ -103,6 +113,7 @@ class UserController extends Controller
                 'availability'              => $user->availability,
                 'contract_pdf_path'         => $user->contract_pdf_path,
                 'work_certificate_pdf_path' => $user->work_certificate_pdf_path,
+                'companies'                 => $user->companies,
                 'updated_at'                => $user->updated_at,
                 'created_at'                => $user->created_at,
             ],

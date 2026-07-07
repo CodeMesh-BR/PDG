@@ -35,6 +35,9 @@ class UserRegistrationController extends Controller
 
             'contract_pdf'         => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
             'work_certificate_pdf' => ['sometimes', 'file', 'mimetypes:application/pdf', 'max:20480'],
+
+            'company_ids'   => ['sometimes', 'array'],
+            'company_ids.*' => ['integer', 'exists:companies,id'],
         ], [
             'phone.regex'    => 'Phone must contain only digits, space, +, -, ( ) and be 7–20 characters long.',
             'password.regex' => 'Password must be 8–16 characters and contain letters and numbers.',
@@ -78,6 +81,9 @@ class UserRegistrationController extends Controller
             throw $e;
         }
 
+        $user->companies()->sync($validated['company_ids'] ?? []);
+        $user->load('companies:id,name,display_name');
+
         return response()->json([
             'message' => 'User created successfully',
             'data' => [
@@ -88,6 +94,7 @@ class UserRegistrationController extends Controller
                 'role'                      => $user->role,
                 'contract_pdf_path'         => $user->contract_pdf_path,
                 'work_certificate_pdf_path' => $user->work_certificate_pdf_path,
+                'companies'                 => $user->companies,
                 'created_at'                => $user->created_at,
             ]
         ], 201);

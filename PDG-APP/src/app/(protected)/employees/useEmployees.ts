@@ -9,6 +9,7 @@ export interface EmployeeListItem {
   role: string;
   created_at: string;
   availability?: string[];
+  companies?: { id: number; name: string; display_name?: string }[];
   contract_pdf_path?: string;
 }
 

@@ -2,14 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\RestrictsCompanyAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
+    use RestrictsCompanyAccess;
+
     // GET /api/reports/services
     public function services(Request $request)
 {
+    $user = $request->user();
+
     $validated = $request->validate([
         'company_id' => ['sometimes', 'integer', 'exists:companies,id'],
         'user_id'    => ['sometimes', 'integer', 'exists:users,id'],
@@ -18,6 +23,12 @@ class ReportController extends Controller
         'date_to'    => ['sometimes', 'date_format:Y-m-d'],
         'date'       => ['sometimes', 'date_format:Y-m-d'],
     ]);
+
+    if (!empty($validated['company_id']) && !$this->ensureCompanyAllowed($user, $validated['company_id'])) {
+        return response()->json([
+            'message' => 'You are not allowed to view reports for this company.',
+        ], 403);
+    }
 
     // atalho: se mandou ?date=YYYY-MM-DD aplica nos dois
     if (!empty($validated['date']) && empty($validated['date_from']) && empty($validated['date_to'])) {
@@ -29,6 +40,8 @@ class ReportController extends Controller
         ->join('companies', 'service_logs.company_id', '=', 'companies.id')
         ->join('users', 'service_logs.user_id', '=', 'users.id')
         ->join('services', 'service_logs.service_id', '=', 'services.id');
+
+    $this->applyCompanyRestriction($base, $user, 'service_logs.company_id');
 
     if (!empty($validated['company_id'])) {
         $base->where('service_logs.company_id', $validated['company_id']);
@@ -125,6 +138,8 @@ class ReportController extends Controller
     // GET /api/reports/services/summary
     public function servicesSummary(Request $request)
     {
+        $user = $request->user();
+
         $validated = $request->validate([
             'company_id' => ['sometimes', 'integer', 'exists:companies,id'],
             'user_id'    => ['sometimes', 'integer', 'exists:users,id'],
@@ -133,6 +148,12 @@ class ReportController extends Controller
             'date_to'    => ['sometimes', 'date_format:Y-m-d'],
             'date'       => ['sometimes', 'date_format:Y-m-d'],
         ]);
+
+        if (!empty($validated['company_id']) && !$this->ensureCompanyAllowed($user, $validated['company_id'])) {
+            return response()->json([
+                'message' => 'You are not allowed to view reports for this company.',
+            ], 403);
+        }
 
         if (!empty($validated['date']) && empty($validated['date_from']) && empty($validated['date_to'])) {
             $validated['date_from'] = $validated['date'];
@@ -143,6 +164,8 @@ class ReportController extends Controller
             ->join('companies', 'service_logs.company_id', '=', 'companies.id')
             ->join('users', 'service_logs.user_id', '=', 'users.id')
             ->join('services', 'service_logs.service_id', '=', 'services.id');
+
+        $this->applyCompanyRestriction($base, $user, 'service_logs.company_id');
 
         if (!empty($validated['company_id'])) {
             $base->where('service_logs.company_id', $validated['company_id']);
