@@ -478,15 +478,22 @@ export function useStartService(): UseStartServiceResult {
 
     setLoadingOcr(true);
     try {
+      const startedAt = Date.now();
       const { status, data } = await sendOcrImage(uploadFile);
+      const elapsedMs = Date.now() - startedAt;
 
       if (status !== 200 || !data) {
+        addDebugLog(
+          `OCR request failed: status=${status} elapsed=${elapsedMs}ms error="${data?.error ?? ""}" message="${data?.message ?? ""}"`,
+        );
         setOcrData(null);
         setPlate("");
         setOcrDebugId(data?.debug_request_id ?? null);
         setOcrError(true);
         return;
       }
+
+      addDebugLog(`OCR request OK: elapsed=${elapsedMs}ms`);
 
       const detectedPlate = normalizePlateValue(data.plate ?? "");
       const fallbackPlate = extractPlateCandidate(data.debug_raw_google ?? "");
