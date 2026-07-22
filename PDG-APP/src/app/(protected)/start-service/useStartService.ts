@@ -497,7 +497,16 @@ export function useStartService(): UseStartServiceResult {
 
       const detectedPlate = normalizePlateValue(data.plate ?? "");
       const fallbackPlate = extractPlateCandidate(data.debug_raw_google ?? "");
-      const finalPlate = detectedPlate || fallbackPlate;
+      const detectedPlain = detectedPlate.replace(/-/g, "");
+      const fallbackPlain = fallbackPlate.replace(/-/g, "");
+      // The backend crops to a plate-zone heuristic and can return a truncated
+      // match (e.g. "1IJU" instead of "1IJU-447"); prefer the fallback (scanned
+      // over the full raw text) whenever it's a longer superset of the backend's pick.
+      const finalPlate =
+        fallbackPlain.length > detectedPlain.length &&
+        fallbackPlain.startsWith(detectedPlain)
+          ? fallbackPlate
+          : detectedPlate || fallbackPlate;
       const detectedStockNumber = normalizeStockNumber(data.stock_number ?? "");
       const fallbackStockNumber = extractStockNumberCandidate(
         data.debug_raw_google ?? "",
