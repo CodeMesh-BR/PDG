@@ -478,14 +478,7 @@ export function useStartService(): UseStartServiceResult {
 
     setLoadingOcr(true);
     try {
-      let { status, data } = await sendOcrImage(uploadFile);
-
-      if ((status !== 200 || !data) && uploadFile !== file) {
-        const retry = await sendOcrImage(file);
-        status = retry.status;
-        data = retry.data;
-        setVehicleImage(file);
-      }
+      const { status, data } = await sendOcrImage(uploadFile);
 
       if (status !== 200 || !data) {
         setOcrData(null);
