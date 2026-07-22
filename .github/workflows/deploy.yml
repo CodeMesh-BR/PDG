@@ -127,6 +127,7 @@ jobs:
             --exclude 'node_modules/' \
             --exclude '.env' \
             --exclude 'storage/logs/*.log' \
+            --exclude 'storage/app/private/*' \
             --exclude 'bootstrap/cache/*' \
             -e "ssh -p ${{ secrets.SSH_PORT }}" \
             PDG-API/api/laravel/ \
