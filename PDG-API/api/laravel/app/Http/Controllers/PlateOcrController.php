@@ -117,17 +117,19 @@ class PlateOcrController extends Controller
             $img = (new Image())->setContent($imageContent);
 
             // DOCUMENT_TEXT_DETECTION alone already returns both textAnnotations
-            // and fullTextAnnotation, so TEXT_DETECTION is redundant. OBJECT_LOCALIZATION
-            // runs a separate detection pass just to narrow the plate search zone, which
-            // already has a full-image fallback below — dropping both cuts Vision API
-            // latency substantially (was the main cause of the OCR timeout/error).
+            // and fullTextAnnotation, so a separate TEXT_DETECTION pass is redundant.
+            // OBJECT_LOCALIZATION is kept: without the vehicle bounding box, the plate
+            // zone falls back to a blind bottom-band crop of the whole photo, which can
+            // grab the wrong text (e.g. a dealer badge below the plate) instead of failing
+            // through to the full-image search.
             $featDoc = (new Feature())->setType(Feature\Type::DOCUMENT_TEXT_DETECTION);
+            $featObj = (new Feature())->setType(Feature\Type::OBJECT_LOCALIZATION);
 
             $ctx = (new ImageContext())->setLanguageHints([env('GCV_LOCALE_HINT', 'en')]);
 
             $annotReq = (new AnnotateImageRequest())
                 ->setImage($img)
-                ->setFeatures([$featDoc])
+                ->setFeatures([$featDoc, $featObj])
                 ->setImageContext($ctx);
 
             $batchReq = (new BatchAnnotateImagesRequest())->setRequests([$annotReq]);

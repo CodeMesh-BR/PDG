@@ -499,14 +499,21 @@ export function useStartService(): UseStartServiceResult {
       const fallbackPlate = extractPlateCandidate(data.debug_raw_google ?? "");
       const detectedPlain = detectedPlate.replace(/-/g, "");
       const fallbackPlain = fallbackPlate.replace(/-/g, "");
-      // The backend crops to a plate-zone heuristic and can return a truncated
-      // match (e.g. "1IJU" instead of "1IJU-447"); prefer the fallback (scanned
-      // over the full raw text) whenever it's a longer superset of the backend's pick.
-      const finalPlate =
-        fallbackPlain.length > detectedPlain.length &&
-        fallbackPlain.startsWith(detectedPlain)
-          ? fallbackPlate
-          : detectedPlate || fallbackPlate;
+      // Plausible plate length worldwide is roughly 4-8 alphanumeric chars. The
+      // backend's plate-zone crop can occasionally sweep in adjacent text (e.g. a
+      // dealer badge below the plate), producing an implausibly long, wrong result.
+      const isPlausiblePlate = (plain: string) =>
+        plain.length >= 4 && plain.length <= 8;
+      // Prefer the fallback (scanned over the full raw text) whenever it's a longer
+      // superset of the backend's pick (truncated zone crop), or whenever the
+      // backend's pick is implausible but the fallback looks like a real plate.
+      const shouldPreferFallback =
+        (fallbackPlain.length > detectedPlain.length &&
+          fallbackPlain.startsWith(detectedPlain)) ||
+        (!isPlausiblePlate(detectedPlain) && isPlausiblePlate(fallbackPlain));
+      const finalPlate = shouldPreferFallback
+        ? fallbackPlate
+        : detectedPlate || fallbackPlate;
       const detectedStockNumber = normalizeStockNumber(data.stock_number ?? "");
       const fallbackStockNumber = extractStockNumberCandidate(
         data.debug_raw_google ?? "",
