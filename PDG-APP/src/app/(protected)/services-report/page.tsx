@@ -1,6 +1,7 @@
 "use client";
 
 import { API_BASE_URL } from "@/lib/api";
+import { canSeeCosts, getStoredRole } from "@/lib/permissions";
 
 import { useEffect, useState } from "react";
 import { fetchUsers, fetchReportServices, ReportFilters } from "./api";
@@ -15,9 +16,11 @@ export default function ServicesReportPage() {
   const [filters, setFilters] = useState<ReportFilters>({});
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [showCosts, setShowCosts] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+    setShowCosts(canSeeCosts(getStoredRole()));
 
     fetchUsers().then(setUsers);
 
@@ -45,11 +48,20 @@ export default function ServicesReportPage() {
       r.service_type,
       r.total_quantity,
       Number(r.total_amount).toFixed(2),
-      Number(r.total_cost_amount ?? 0).toFixed(2),
+      ...(showCosts ? [Number(r.total_cost_amount ?? 0).toFixed(2)] : []),
     ]);
 
     const csv = [
-      ["Date", "Company", "Employee", "Plate", "Service", "Quantity", "Total", "Cost"],
+      [
+        "Date",
+        "Company",
+        "Employee",
+        "Plate",
+        "Service",
+        "Quantity",
+        "Total",
+        ...(showCosts ? ["Cost"] : []),
+      ],
       ...rows,
     ]
       .map((r) => r.join(","))
@@ -114,7 +126,16 @@ export default function ServicesReportPage() {
     autoTable(pdf, {
       startY: 185,
       head: [
-        ["Date", "Company", "Employee", "Plate", "Service", "Qty", "Total", "Cost"],
+        [
+          "Date",
+          "Company",
+          "Employee",
+          "Plate",
+          "Service",
+          "Qty",
+          "Total",
+          ...(showCosts ? ["Cost"] : []),
+        ],
       ],
 
       theme: "grid",
@@ -126,7 +147,7 @@ export default function ServicesReportPage() {
         r.service_type,
         r.total_quantity,
         Number(r.total_amount).toFixed(2),
-      Number(r.total_cost_amount ?? 0).toFixed(2),
+        ...(showCosts ? [Number(r.total_cost_amount ?? 0).toFixed(2)] : []),
       ]),
     });
 
@@ -146,11 +167,13 @@ export default function ServicesReportPage() {
       40,
       endY + 70,
     );
-    pdf.text(
-      `Total Cost: $${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}`,
-      40,
-      endY + 90,
-    );
+    if (showCosts) {
+      pdf.text(
+        `Total Cost: $${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}`,
+        40,
+        endY + 90,
+      );
+    }
 
     const dateSlug = new Date().toISOString().split("T")[0];
     pdf.save(`services_report_${dateSlug}.pdf`);
@@ -261,10 +284,14 @@ export default function ServicesReportPage() {
               Total revenue:{" "}
               <b>${Number(report.grand_totals.total_amount).toFixed(2)}</b>
             </p>
-            <p>
-              Total cost:{" "}
-              <b>${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}</b>
-            </p>
+            {showCosts && (
+              <p>
+                Total cost:{" "}
+                <b>
+                  ${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}
+                </b>
+              </p>
+            )}
 
             <div className="mt-4 flex gap-4">
               <Button label="Export CSV" onClick={exportCSV} />
@@ -283,7 +310,7 @@ export default function ServicesReportPage() {
                   <th className="p-3">Service</th>
                   <th className="p-3 text-center">Qty</th>
                   <th className="p-3 text-right">Total</th>
-                  <th className="p-3 text-right">Cost</th>
+                  {showCosts && <th className="p-3 text-right">Cost</th>}
                 </tr>
               </thead>
               <tbody>
@@ -300,9 +327,11 @@ export default function ServicesReportPage() {
                     <td className="p-3 text-right">
                       ${Number(r.total_amount).toFixed(2)}
                     </td>
-                    <td className="p-3 text-right">
-                      ${Number(r.total_cost_amount ?? 0).toFixed(2)}
-                    </td>
+                    {showCosts && (
+                      <td className="p-3 text-right">
+                        ${Number(r.total_cost_amount ?? 0).toFixed(2)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -320,9 +349,14 @@ export default function ServicesReportPage() {
                   <td className="p-3 text-right">
                     ${Number(report.grand_totals.total_amount).toFixed(2)}
                   </td>
-                  <td className="p-3 text-right">
-                    ${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}
-                  </td>
+                  {showCosts && (
+                    <td className="p-3 text-right">
+                      $
+                      {Number(report.grand_totals.total_cost_amount ?? 0).toFixed(
+                        2,
+                      )}
+                    </td>
+                  )}
                 </tr>
               </tfoot>
             </table>

@@ -25,6 +25,12 @@ class UserController extends Controller
     // PATCH/PUT /api/users/{user}
     public function update(Request $request, User $user)
     {
+        $actor = $request->user();
+
+        if (!$actor->isAdmin() && $actor->id !== $user->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'display_name' => ['sometimes', 'string', 'min:2', 'max:150'],
             'full_name'    => ['sometimes', 'string', 'min:3', 'max:150'],
@@ -74,7 +80,8 @@ class UserController extends Controller
 
         $user->fill($validated)->save();
 
-        if ($request->has('company_ids') || $request->boolean('company_ids_provided')) {
+
+        if ($actor->isAdmin() && ($request->has('company_ids') || $request->boolean('company_ids_provided'))) {
             $user->companies()->sync($request->array('company_ids'));
         }
         $user->load('companies:id,name,display_name');
@@ -121,8 +128,12 @@ class UserController extends Controller
     }
 
     // DELETE /api/users/{user}
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $user->delete();
         return response()->json([
             'message' => 'User deleted successfully.',

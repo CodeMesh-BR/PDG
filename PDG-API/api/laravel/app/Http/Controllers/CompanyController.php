@@ -3,25 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
+use App\Traits\RestrictsCompanyAccess;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class CompanyController extends Controller
 {
+    use RestrictsCompanyAccess;
+
     // GET /api/companies
     public function index(Request $request)
     {
         $perPage = min((int) $request->query('per_page', 15), 500);
 
-        $companies = \App\Models\Company::with(['services' => function ($q) {
+        $query = \App\Models\Company::with(['services' => function ($q) {
             $q->select('services.id', 'department_id', 'type', 'description', 'value')
                 ->with('department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity');
         }])
             ->select('id', 'name', 'display_name', 'email', 'address', 'phone', 'default_service_id', 'created_at')
-            ->orderByDesc('id')
-            ->paginate($perPage);
+            ->orderByDesc('id');
 
-        return response()->json($companies);
+        $this->applyCompanyRestriction($query, $request->user(), 'id');
+
+        return response()->json($query->paginate($perPage));
     }
 
     // POST /api/companies
@@ -73,8 +77,12 @@ class CompanyController extends Controller
     }
 
     // GET /api/companies/{id}
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        if (!$this->ensureCompanyAllowed($request->user(), (int) $id)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $company = Company::with([
             'services' => function ($q) {
                 $q->select('services.id', 'department_id', 'type', 'description', 'value')

@@ -27,6 +27,7 @@ export default function EditServicePage() {
   const [companyList, setCompanyList] = useState<Company[]>([]);
   const [serviceList, setServiceList] = useState<Service[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -55,19 +56,29 @@ export default function EditServicePage() {
   }, [company]);
 
   const handleSave = async () => {
-    if (!company || !service || !plate) return;
+    if (!company || !service) return;
+
+    if (!plate && log?.vehicle_condition !== "new") return;
 
     setSaving(true);
 
-    await updateServiceLog(Number(id), {
+    const { status, data } = await updateServiceLog(Number(id), {
       company_id: company,
       service_id: service,
-      car_plate: plate,
+      car_plate: plate || null,
+      vehicle_condition: log?.vehicle_condition ?? null,
+      stock_number: log?.stock_number ?? null,
       quantity,
       notes,
     });
 
     setSaving(false);
+
+    if (status < 200 || status >= 300) {
+      setError((data as any)?.message ?? "Failed to update service.");
+      return;
+    }
+
     navigate("/start-service");
   };
 
@@ -78,6 +89,8 @@ export default function EditServicePage() {
   return (
     <div className="p-6">
       <h1 className="mb-6 text-2xl font-semibold">Edit service #{log.id}</h1>
+
+      {error && <p className="mb-4 text-red-500">{error}</p>}
 
       <label className="mb-1 block">Company</label>
       <select

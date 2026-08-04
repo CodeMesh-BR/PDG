@@ -88,7 +88,7 @@ export default function ClientLayout({
 
   return (
     <div className="flex min-h-screen">
-      {!isDetailer && <Sidebar />}
+      {!isDetailer && <Sidebar role={role} />}
 
       <div className="w-full bg-gray-2 dark:bg-[#020d1a]">
         <Header hideSidebarToggle={isDetailer} />

@@ -43,12 +43,18 @@ class ServiceController extends Controller
     }
 
     // GET /api/services
-    public function index()
+    public function index(Request $request)
     {
+        $columns = ['id', 'department_id', 'type', 'description', 'value', 'created_at', 'updated_at'];
+
+        if ($request->user()->canSeeCosts()) {
+            $columns[] = 'cost_value';
+        }
+
         return response()->json(
             \App\Models\Service::query()
                 ->with('department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity')
-                ->select('id', 'department_id', 'type', 'description', 'value', 'cost_value', 'created_at', 'updated_at')
+                ->select($columns)
                 ->orderByDesc('id')
                 ->paginate(15)
         );
@@ -56,21 +62,24 @@ class ServiceController extends Controller
 
 
     // GET /api/services/{service}
-    public function show(Service $service)
+    public function show(Request $request, Service $service)
     {
-        return response()->json([
-            'data' => [
-                'id'                => $service->id,
-                'department_id'     => $service->department_id,
-                'department'        => $service->department,
-                'type'              => $service->type,
-                'description'       => $service->description,
-                'value'             => $service->value,
-                'cost_value'        => $service->cost_value,
-                'created_at'        => $service->created_at,
-                'updated_at'        => $service->updated_at,
-            ],
-        ]);
+        $data = [
+            'id'                => $service->id,
+            'department_id'     => $service->department_id,
+            'department'        => $service->department,
+            'type'              => $service->type,
+            'description'       => $service->description,
+            'value'             => $service->value,
+            'created_at'        => $service->created_at,
+            'updated_at'        => $service->updated_at,
+        ];
+
+        if ($request->user()->canSeeCosts()) {
+            $data['cost_value'] = $service->cost_value;
+        }
+
+        return response()->json(['data' => $data]);
     }
 
     // PUT /api/services/{service}

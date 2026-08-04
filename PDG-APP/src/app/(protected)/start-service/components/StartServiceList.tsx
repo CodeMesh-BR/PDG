@@ -1,42 +1,147 @@
 "use client";
 
 import type { ServiceLog } from "../types";
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Pencil, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 
 interface Props {
   logs: ServiceLog[];
   onDelete: (id: number) => void;
   onEdit: (log: ServiceLog) => void;
+  showCosts?: boolean;
+  showEmployee?: boolean;
 }
 
-export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
+type SortKey =
+  | "employee"
+  | "company"
+  | "service"
+  | "department"
+  | "plate"
+  | "stock"
+  | "date"
+  | "cost";
+
+type SortDirection = "asc" | "desc";
+
+/** Value each column sorts by. Numbers sort numerically, everything else as text. */
+const SORT_VALUES: Record<SortKey, (log: ServiceLog) => string | number> = {
+  employee: (log) => log.user?.display_name ?? log.user?.full_name ?? "",
+  company: (log) => log.company.display_name ?? log.company.name,
+  service: (log) => log.service.type,
+  department: (log) => log.department?.name ?? log.service.department?.name ?? "",
+  plate: (log) => log.car_plate ?? "",
+  stock: (log) => log.stock_number ?? "",
+  date: (log) => log.performed_at.slice(0, 10),
+  cost: (log) => Number(log.service.cost_value ?? 0),
+};
+
+export default function StartServiceList({
+  logs,
+  onDelete,
+  onEdit,
+  showCosts = true,
+  showEmployee = false,
+}: Props) {
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDirection("asc");
+  };
+
+  const sortedLogs = useMemo(() => {
+    if (!sortKey) return logs;
+
+    const getValue = SORT_VALUES[sortKey];
+    const factor = sortDirection === "asc" ? 1 : -1;
+
+    return [...logs].sort((a, b) => {
+      const left = getValue(a);
+      const right = getValue(b);
+
+      if (typeof left === "number" && typeof right === "number") {
+        return (left - right) * factor;
+      }
+
+      // Empty cells always sink to the bottom, whichever direction is active.
+      if (left === "") return right === "" ? 0 : 1;
+      if (right === "") return -1;
+
+      return String(left).localeCompare(String(right), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }) * factor;
+    });
+  }, [logs, sortKey, sortDirection]);
+
+  const SortableHeader = ({
+    label,
+    sortBy,
+    align = "left",
+  }: {
+    label: string;
+    sortBy: SortKey;
+    align?: "left" | "right";
+  }) => {
+    const isActive = sortKey === sortBy;
+    const Icon = !isActive
+      ? ChevronsUpDown
+      : sortDirection === "asc"
+        ? ChevronUp
+        : ChevronDown;
+
+    return (
+      <th
+        className={`px-2 py-2 font-medium sm:px-4 sm:py-3 ${align === "right" ? "text-right" : ""}`}
+        aria-sort={
+          isActive
+            ? sortDirection === "asc"
+              ? "ascending"
+              : "descending"
+            : "none"
+        }
+      >
+        <button
+          type="button"
+          onClick={() => toggleSort(sortBy)}
+          className={`group inline-flex items-center gap-1 font-medium transition hover:text-gray-900 dark:hover:text-white ${
+            align === "right" ? "flex-row-reverse" : ""
+          } ${isActive ? "text-gray-900 dark:text-white" : ""}`}
+        >
+          {label}
+          <Icon
+            size={14}
+            strokeWidth={2}
+            className={isActive ? "" : "opacity-40 group-hover:opacity-70"}
+            aria-hidden="true"
+          />
+        </button>
+      </th>
+    );
+  };
+
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-xs sm:text-sm">
           <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
             <tr>
-              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
-                Company
-              </th>
-              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
-                Service
-              </th>
-              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
-                Department
-              </th>
-              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
-                Plate
-              </th>
-              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
-                Stock
-              </th>
-              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
-                Date
-              </th>
-              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
-                Cost Value
-              </th>
+              {showEmployee && (
+                <SortableHeader label="Employee" sortBy="employee" />
+              )}
+              <SortableHeader label="Company" sortBy="company" />
+              <SortableHeader label="Service" sortBy="service" />
+              <SortableHeader label="Department" sortBy="department" />
+              <SortableHeader label="Plate" sortBy="plate" />
+              <SortableHeader label="Stock" sortBy="stock" />
+              <SortableHeader label="Date" sortBy="date" />
+              {showCosts && <SortableHeader label="Cost Value" sortBy="cost" />}
               <th className="px-2 py-2 text-right font-medium sm:px-4 sm:py-3">
                 Actions
               </th>
@@ -44,7 +149,7 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
           </thead>
 
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {logs.map((log) => {
+            {sortedLogs.map((log) => {
               const onlyDate = log.performed_at.slice(0, 10);
               const [year, month, day] = onlyDate.split("-");
               const formatted = `${day}/${month}/${year}`;
@@ -55,6 +160,12 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
                   key={log.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-800/60"
                 >
+                  {showEmployee && (
+                    <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
+                      {log.user?.display_name ?? log.user?.full_name ?? "-"}
+                    </td>
+                  )}
+
                   <td className="px-2 py-2 font-medium text-gray-900 dark:text-white sm:px-4 sm:py-3">
                     {log.company.display_name ?? log.company.name}
                   </td>
@@ -84,9 +195,11 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
                     {formatted}
                   </td>
 
-                  <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
-                    {costValue != null ? `$${costValue}` : "-"}
-                  </td>
+                  {showCosts && (
+                    <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
+                      {costValue != null ? `$${costValue}` : "-"}
+                    </td>
+                  )}
 
                   <td className="px-2 py-2 sm:px-4 sm:py-3">
                     <div className="flex justify-end gap-2 sm:gap-3">

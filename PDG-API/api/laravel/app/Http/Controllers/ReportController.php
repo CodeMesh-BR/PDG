@@ -66,11 +66,15 @@ class ReportController extends Controller
     /* -----------------------------
        GRAND TOTALS
     ------------------------------*/
+    $showCosts = $user->canSeeCosts();
+
     $grand = (clone $base)
         ->selectRaw('
             COALESCE(SUM(service_logs.quantity), 0) as total_quantity,
-            COALESCE(SUM(service_logs.quantity * services.value), 0) as total_amount,
-            COALESCE(SUM(service_logs.quantity * COALESCE(services.cost_value, services.value)), 0) as total_cost_amount
+            COALESCE(SUM(service_logs.quantity * services.value), 0) as total_amount
+            ' . ($showCosts
+                ? ', COALESCE(SUM(service_logs.quantity * COALESCE(services.cost_value, services.value)), 0) as total_cost_amount'
+                : '') . '
         ')
         ->first();
 
@@ -89,12 +93,16 @@ class ReportController extends Controller
             services.type as service_type,
             services.description as service_description,
             services.value as service_unit_value,
-            COALESCE(services.cost_value, services.value) as service_unit_cost_value,
+            " . ($showCosts
+                ? 'COALESCE(services.cost_value, services.value) as service_unit_cost_value,'
+                : '') . "
             service_logs.car_plate,
             service_logs.performed_at,
             SUM(service_logs.quantity) as total_quantity,
-            SUM(service_logs.quantity * services.value) as total_amount,
-            SUM(service_logs.quantity * COALESCE(services.cost_value, services.value)) as total_cost_amount
+            SUM(service_logs.quantity * services.value) as total_amount
+            " . ($showCosts
+                ? ', SUM(service_logs.quantity * COALESCE(services.cost_value, services.value)) as total_cost_amount'
+                : '') . "
         ")
         ->groupBy(
             'service_logs.company_id',
@@ -128,8 +136,13 @@ class ReportController extends Controller
     $payload['grand_totals'] = [
         'total_quantity' => (int) ($grand->total_quantity ?? 0),
         'total_amount'   => (float) ($grand->total_amount ?? 0),
-        'total_cost_amount'   => (float) ($grand->total_cost_amount ?? 0),
     ];
+
+    if ($showCosts) {
+        $payload['grand_totals']['total_cost_amount'] = (float) ($grand->total_cost_amount ?? 0);
+    }
+
+    $payload['can_see_costs'] = $showCosts;
 
     return response()->json($payload);
 }

@@ -58,6 +58,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Services Logs
     Route::post('/service-logs', [ServiceLogController::class, 'store']);
     Route::get('/service-logs',  [ServiceLogController::class, 'index']);
+    Route::get('/service-logs/{serviceLog}',  [ServiceLogController::class, 'show']);
+    Route::match(['put', 'patch'], '/service-logs/{serviceLog}',  [ServiceLogController::class, 'update']);
     Route::delete('/service-logs/{serviceLog}',  [ServiceLogController::class, 'destroy']);
 
     // Reports

@@ -2,17 +2,32 @@
 
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { canAccessPath, getStoredRole, type Role } from "@/lib/permissions";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { NAV_DATA } from "./data";
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
 
-export function Sidebar() {
+export function Sidebar({ role }: { role?: Role | null }) {
   const { pathname } = useLocation();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const effectiveRole = role ?? getStoredRole();
+
+  // Only show the entries this role is actually allowed to open.
+  const navData = useMemo(
+    () =>
+      NAV_DATA.map((section) => ({
+        ...section,
+        items: section.items.filter((item) =>
+          canAccessPath(item.url, effectiveRole),
+        ),
+      })).filter((section) => section.items.length > 0),
+    [effectiveRole],
+  );
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
@@ -25,7 +40,7 @@ export function Sidebar() {
 
   useEffect(() => {
     // Keep collapsible open, when it's subpage is active
-    NAV_DATA.some((section) => {
+    navData.some((section) => {
       return section.items.some((item) => {
         return item.items.some((subItem) => {
           if (subItem.url === pathname) {
@@ -84,7 +99,7 @@ export function Sidebar() {
           </div>
 
           <div className="custom-scrollbar mt-6 flex-1 overflow-y-auto pr-3 min-[850px]:mt-10">
-            {NAV_DATA.map((section) => (
+            {navData.map((section) => (
               <div key={section.label} className="mb-6">
                 <h2 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
                   {section.label}

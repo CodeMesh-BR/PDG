@@ -47,6 +47,7 @@ export interface OcrResponse {
 
 export interface ServiceLog {
   id: number;
+  user_id?: number;
   company_id: number;
   service_id: number;
   department_id?: number | null;
@@ -57,6 +58,12 @@ export interface ServiceLog {
   performed_at: string;
   quantity: number;
   notes: string | null;
+
+  user?: {
+    id: number;
+    display_name: string | null;
+    full_name: string | null;
+  } | null;
 
   company: {
     id: number;
