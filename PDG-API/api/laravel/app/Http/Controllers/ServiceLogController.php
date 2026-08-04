@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\ServiceLog;
+use App\Models\User;
 use App\Traits\RestrictsCompanyAccess;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -126,13 +127,16 @@ class ServiceLogController extends Controller
     {
         $user = $request->user();
 
-        $logs = ServiceLog::with([
-            'company:id,name,display_name',
-            'service:id,department_id,type,description,value,cost_value',
-            'service.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
-            'department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
-        ])
-            ->where('user_id', $user->id)
+        $logs = ServiceLog::with($this->logRelations($user))
+
+            ->when(
+                !$user->canManageAllServiceLogs(),
+                fn($q) => $q->where('user_id', $user->id)
+            )
+            ->when(
+                $request->filled('user_id') && $user->canManageAllServiceLogs(),
+                fn($q) => $q->where('user_id', $request->integer('user_id'))
+            )
             ->when(
                 $request->filled('company_id'),
                 fn($q) => $q->where('company_id', $request->integer('company_id'))
@@ -149,15 +153,129 @@ class ServiceLogController extends Controller
         return response()->json($logs);
     }
 
+    public function show(Request $request, ServiceLog $serviceLog)
+    {
+        $user = $request->user();
+
+        if (!$this->canManageLog($user, $serviceLog)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $serviceLog->load($this->logRelations($user));
+
+        return response()->json(['data' => $serviceLog]);
+    }
+
+    public function update(Request $request, ServiceLog $serviceLog)
+    {
+        $user = $request->user();
+
+        if (!$this->canManageLog($user, $serviceLog)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $validated = $request->validate([
+            'company_id' => ['sometimes', 'integer', 'exists:companies,id'],
+            'service_id' => ['sometimes', 'integer', 'exists:services,id'],
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
+            'vehicle_condition' => ['sometimes', 'nullable', Rule::in(['new', 'used'])],
+            'stock_number' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'car_plate' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'date' => ['sometimes', 'date_format:Y-m-d'],
+            'quantity' => ['sometimes', 'integer', 'min:1'],
+            'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+        ]);
+
+        $companyId = $validated['company_id'] ?? $serviceLog->company_id;
+        $serviceId = $validated['service_id'] ?? $serviceLog->service_id;
+
+        if (!$this->ensureCompanyAllowed($user, $companyId)) {
+            return response()->json([
+                'message' => 'You are not allowed to log services for this company.',
+            ], 403);
+        }
+
+        $company = Company::with([
+            'services:id,department_id',
+            'services.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
+        ])->findOrFail($companyId);
+
+        $service = $company->services->firstWhere('id', $serviceId);
+
+        if (!$service) {
+            return response()->json([
+                'message' => 'This service is not attached to the selected company.',
+            ], 422);
+        }
+
+        $effectiveDepartment = $service->department;
+
+        if (array_key_exists('department_id', $validated) && !empty($validated['department_id'])) {
+            $effectiveDepartment = Department::select([
+                'id', 'name', 'description', 'bill_by_unit', 'bill_by_hour', 'bill_by_quantity',
+            ])->find($validated['department_id']);
+        }
+
+        $isNewUsed = $effectiveDepartment?->name === 'New / Used';
+        $carPlate = $this->normalizeNullableValue(
+            array_key_exists('car_plate', $validated) ? $validated['car_plate'] : $serviceLog->car_plate
+        );
+        $stockNumber = $this->normalizeNullableValue(
+            array_key_exists('stock_number', $validated) ? $validated['stock_number'] : $serviceLog->stock_number
+        );
+        $vehicleCondition = array_key_exists('vehicle_condition', $validated)
+            ? $validated['vehicle_condition']
+            : $serviceLog->vehicle_condition;
+
+        $validationMessage = $this->validateVehicleFields(
+            $isNewUsed,
+            $vehicleCondition,
+            $stockNumber,
+            $carPlate
+        );
+
+        if ($validationMessage) {
+            return response()->json(['message' => $validationMessage], 422);
+        }
+
+        if (!$isNewUsed) {
+            $vehicleCondition = null;
+            $stockNumber = null;
+        }
+
+        $serviceLog->fill([
+            'company_id' => $companyId,
+            'service_id' => $serviceId,
+            'department_id' => $effectiveDepartment?->id,
+            'car_plate' => $carPlate,
+            'vehicle_condition' => $vehicleCondition,
+            'stock_number' => $stockNumber,
+            'quantity' => $validated['quantity'] ?? $serviceLog->quantity,
+        ]);
+
+        if (array_key_exists('date', $validated)) {
+            $serviceLog->performed_at = $validated['date'];
+        }
+
+        if (array_key_exists('notes', $validated)) {
+            $serviceLog->notes = $validated['notes'];
+        }
+
+        $serviceLog->save();
+        $serviceLog->load($this->logRelations($user));
+
+        return response()->json([
+            'message' => 'Service entry updated successfully.',
+            'data' => $serviceLog,
+        ]);
+    }
+
     public function destroy(Request $request, ServiceLog $serviceLog)
     {
         $user = $request->user();
 
-        if ($user->isRestrictedToCompanies()) {
-            $allowed = $this->ensureCompanyAllowed($user, $serviceLog->company_id);
-            if ($serviceLog->user_id !== $user->id || !$allowed) {
-                return response()->json(['message' => 'Forbidden.'], 403);
-            }
+        if (!$this->canManageLog($user, $serviceLog)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
         }
 
         $serviceLog->delete();
@@ -168,6 +286,30 @@ class ServiceLogController extends Controller
                 'id' => $serviceLog->id,
             ],
         ], 204);
+    }
+
+
+    private function logRelations(User $user): array
+    {
+        $serviceColumns = 'id,department_id,type,description,value'
+            . ($user->canSeeCosts() ? ',cost_value' : '');
+
+        return [
+            'user:id,display_name,full_name',
+            'company:id,name,display_name',
+            'service:' . $serviceColumns,
+            'service.department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
+            'department:id,name,description,bill_by_unit,bill_by_hour,bill_by_quantity',
+        ];
+    }
+
+    private function canManageLog(User $user, ServiceLog $log): bool
+    {
+        if (!$this->ensureCompanyAllowed($user, $log->company_id)) {
+            return false;
+        }
+
+        return $user->canManageAllServiceLogs() || $log->user_id === $user->id;
     }
 
     private function normalizeNullableValue(?string $value): ?string

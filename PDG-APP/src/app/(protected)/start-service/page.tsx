@@ -7,11 +7,19 @@ import StartServiceList from "./components/StartServiceList";
 import { deleteServiceLog } from "./api";
 import { ServiceLog } from "./types";
 import { useNavigate } from "react-router-dom";
+import {
+  canManageAllServiceLogs,
+  canSeeCosts,
+  getStoredRole,
+} from "@/lib/permissions";
 
 export default function StartServicePage() {
   const service = useStartService();
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
+  const role = getStoredRole();
+  const showCosts = canSeeCosts(role);
+  const showEmployee = canManageAllServiceLogs(role);
   const selectedDate = service.selectedDate;
   const [year, month, day] = selectedDate.split("-");
   const formattedDate = `${day}/${month}/${year}`;
@@ -52,9 +60,11 @@ export default function StartServicePage() {
                 <p className="text-gray-500">
                   {service.total} services started on {formattedDate}
                 </p>
-                <p className="text-sm text-gray-400">
-                  Total value: ${totalValue.toFixed(2)}
-                </p>
+                {showCosts && (
+                  <p className="text-sm text-gray-400">
+                    Total value: ${totalValue.toFixed(2)}
+                  </p>
+                )}
               </div>
 
               <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
@@ -76,6 +86,8 @@ export default function StartServicePage() {
                 logs={service.logs}
                 onDelete={handleDelete}
                 onEdit={handleEdit}
+                showCosts={showCosts}
+                showEmployee={showEmployee}
               />
             )}
           </>

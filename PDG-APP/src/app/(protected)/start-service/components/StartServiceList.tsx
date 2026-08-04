@@ -7,15 +7,28 @@ interface Props {
   logs: ServiceLog[];
   onDelete: (id: number) => void;
   onEdit: (log: ServiceLog) => void;
+  showCosts?: boolean;
+  showEmployee?: boolean;
 }
 
-export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
+export default function StartServiceList({
+  logs,
+  onDelete,
+  onEdit,
+  showCosts = true,
+  showEmployee = false,
+}: Props) {
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-xs sm:text-sm">
           <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
             <tr>
+              {showEmployee && (
+                <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
+                  Employee
+                </th>
+              )}
               <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
                 Company
               </th>
@@ -34,9 +47,11 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
               <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
                 Date
               </th>
-              <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
-                Cost Value
-              </th>
+              {showCosts && (
+                <th className="px-2 py-2 font-medium sm:px-4 sm:py-3">
+                  Cost Value
+                </th>
+              )}
               <th className="px-2 py-2 text-right font-medium sm:px-4 sm:py-3">
                 Actions
               </th>
@@ -55,6 +70,12 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
                   key={log.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-800/60"
                 >
+                  {showEmployee && (
+                    <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
+                      {log.user?.display_name ?? log.user?.full_name ?? "-"}
+                    </td>
+                  )}
+
                   <td className="px-2 py-2 font-medium text-gray-900 dark:text-white sm:px-4 sm:py-3">
                     {log.company.display_name ?? log.company.name}
                   </td>
@@ -84,9 +105,11 @@ export default function StartServiceList({ logs, onDelete, onEdit }: Props) {
                     {formatted}
                   </td>
 
-                  <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
-                    {costValue != null ? `$${costValue}` : "-"}
-                  </td>
+                  {showCosts && (
+                    <td className="px-2 py-2 text-gray-700 dark:text-gray-200 sm:px-4 sm:py-3">
+                      {costValue != null ? `$${costValue}` : "-"}
+                    </td>
+                  )}
 
                   <td className="px-2 py-2 sm:px-4 sm:py-3">
                     <div className="flex justify-end gap-2 sm:gap-3">

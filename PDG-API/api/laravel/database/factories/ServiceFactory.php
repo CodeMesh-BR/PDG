@@ -12,10 +12,13 @@ class ServiceFactory extends Factory
 
     public function definition(): array
     {
+        $value = fake()->randomFloat(2, 50, 500);
+
         return [
             'type'        => fake()->unique()->words(2, true),
             'description' => fake()->sentence(8),
-            'value'       => fake()->randomFloat(2, 50, 500),
+            'value'       => $value,
+            'cost_value'  => round($value * 0.6, 2),
         ];
     }
 }

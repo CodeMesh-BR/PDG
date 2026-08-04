@@ -40,9 +40,34 @@ class User extends Authenticatable
         return $this->belongsToMany(Company::class, 'company_user')->withTimestamps();
     }
 
+    public function roleName(): string
+    {
+        return strtolower(trim((string) $this->role));
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->roleName() === 'admin';
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->roleName() === 'supervisor';
+    }
+
     public function isRestrictedToCompanies(): bool
     {
-        return in_array(strtolower(trim((string) $this->role)), ['detailer', 'client'], true);
+        return in_array($this->roleName(), ['detailer', 'client'], true);
+    }
+
+    public function canManageAllServiceLogs(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canSeeCosts(): bool
+    {
+        return !$this->isSupervisor();
     }
 
     /**
