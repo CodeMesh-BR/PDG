@@ -1,370 +1,533 @@
-"use client";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { API_BASE_URL } from "@/lib/api";
-import { canSeeCosts, getStoredRole } from "@/lib/permissions";
-
-import { useEffect, useState } from "react";
-import { fetchUsers, fetchReportServices, ReportFilters } from "./api";
 import { Button } from "@/components/ui-elements/button";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { canSeeCosts, getStoredRole } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
+
+import {
+  fetchCompanies,
+  fetchReportServices,
+  fetchReportSummary,
+  fetchUsers,
+  type ReportFilters,
+  type ServicesReport,
+  type ServicesSummary,
+} from "./api";
+import { getColumns, money, num, type ReportMode } from "./columns";
+import { buildReportPdf, loadLogoDataUrl, type PdfMeta } from "./reportPdf";
+import { SummaryBlocks } from "./SummaryBlocks";
+
+const MODES: { value: ReportMode; label: string; hint: string }[] = [
+  { value: "simple", label: "Simple", hint: "Date, company, employee, service and totals." },
+  {
+    value: "detailed",
+    label: "Detailed",
+    hint: "Adds stock number, condition, department, unit values, margin, notes and breakdowns.",
+  },
+];
+
+function labelForPeriod(filters: ReportFilters) {
+  if (!filters.date_from && !filters.date_to) return "All time";
+  return `${filters.date_from || "—"} → ${filters.date_to || "—"}`;
+}
 
 export default function ServicesReportPage() {
   const [mounted, setMounted] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+
   const [filters, setFilters] = useState<ReportFilters>({});
-  const [report, setReport] = useState<any>(null);
+  /** filtros que produziram o relatório atualmente na tela */
+  const [appliedFilters, setAppliedFilters] = useState<ReportFilters>({});
+
+  const [mode, setMode] = useState<ReportMode>("simple");
+  const [report, setReport] = useState<ServicesReport | null>(null);
+  const [summary, setSummary] = useState<ServicesSummary | null>(null);
+
   const [loading, setLoading] = useState(false);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  /** evita re-tentar em loop quando a busca dos agrupamentos falha */
+  const [summaryRequested, setSummaryRequested] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [showCosts, setShowCosts] = useState(true);
 
   useEffect(() => {
     setMounted(true);
     setShowCosts(canSeeCosts(getStoredRole()));
 
-    fetchUsers().then(setUsers);
+    fetchUsers().then(setUsers).catch(() => setUsers([]));
+    fetchCompanies().then(setCompanies).catch(() => setCompanies([]));
+  }, []);
 
-    fetch(`${API_BASE_URL}/companies`, {
-      headers: { Authorization: "Bearer " + localStorage.getItem("token") },
-    })
-      .then((r) => r.json())
-      .then((r) => setCompanies(r.data ?? []));
+  const loadSummary = useCallback(async (target: ReportFilters) => {
+    setSummaryRequested(true);
+    setLoadingSummary(true);
+    try {
+      setSummary(await fetchReportSummary(target));
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load the breakdowns.");
+    } finally {
+      setLoadingSummary(false);
+    }
   }, []);
 
   const generateReport = async () => {
     setLoading(true);
-    const data = await fetchReportServices(filters);
-    setReport(data);
-    setLoading(false);
+    setError(null);
+    setSummary(null);
+    setSummaryRequested(false);
+
+    try {
+      const data = await fetchReportServices(filters);
+      setReport(data);
+      setAppliedFilters(filters);
+
+      if (mode === "detailed") await loadSummary(filters);
+    } catch (e: any) {
+      setReport(null);
+      setError(e?.message ?? "Failed to generate the report.");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ao alternar para o modo detalhado com um relatório já na tela,
+  // busca os agrupamentos correspondentes aos filtros aplicados
+  useEffect(() => {
+    if (mode === "detailed" && report && !summaryRequested) {
+      loadSummary(appliedFilters);
+    }
+  }, [mode, report, summaryRequested, appliedFilters, loadSummary]);
+
+  const columns = useMemo(
+    () => getColumns(mode, showCosts, true),
+    [mode, showCosts],
+  );
+
+  const rows = report?.data ?? [];
+  const totals = report?.grand_totals;
+
+  const pdfMeta: PdfMeta = useMemo(
+    () => ({
+      mode,
+      periodLabel: labelForPeriod(appliedFilters),
+      companyLabel: appliedFilters.company_id
+        ? (companies.find((c) => c.id == appliedFilters.company_id)?.display_name ??
+          companies.find((c) => c.id == appliedFilters.company_id)?.name ??
+          "—")
+        : "All companies",
+      employeeLabel: appliedFilters.user_id
+        ? (users.find((u) => u.id == appliedFilters.user_id)?.display_name ??
+          users.find((u) => u.id == appliedFilters.user_id)?.full_name ??
+          "—")
+        : "All employees",
+      plateLabel: appliedFilters.plate || "Any plate",
+    }),
+    [mode, appliedFilters, companies, users],
+  );
+
+  const fileStamp = new Date().toISOString().slice(0, 10);
+
   const exportCSV = () => {
-    if (!report?.data) return;
-    const rows = report.data.map((r: any) => [
-      r.performed_at.slice(0, 10),
-      r.company_name,
-      r.display_name ?? r.full_name ?? "—",
-      r.car_plate ?? "—",
-      r.service_type,
-      r.total_quantity,
-      Number(r.total_amount).toFixed(2),
-      ...(showCosts ? [Number(r.total_cost_amount ?? 0).toFixed(2)] : []),
-    ]);
+    if (!rows.length) return;
+
+    const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
     const csv = [
-      [
-        "Date",
-        "Company",
-        "Employee",
-        "Plate",
-        "Service",
-        "Quantity",
-        "Total",
-        ...(showCosts ? ["Cost"] : []),
-      ],
-      ...rows,
+      columns.map((c) => escape(c.header)),
+      ...rows.map((row) => columns.map((c) => escape((c.raw ?? c.value)(row)))),
     ]
-      .map((r) => r.join(","))
+      .map((line) => line.join(","))
       .join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-
-    const stamp = new Date().toLocaleDateString("en-US").replace(/\//g, "-");
-    a.download = `services_report_${stamp}.csv`;
+    a.download = `services_report_${mode}_${fileStamp}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   const exportPDF = async () => {
-    if (!report?.data) return;
+    if (!rows.length || !totals) return;
 
-    const pdf = new jsPDF("p", "pt");
-
+    setExporting(true);
     try {
-      const logo = await fetch("/logo-pdg.png")
-        .then((r) => r.blob())
-        .then((blob) => URL.createObjectURL(blob));
+      let breakdowns = summary;
+      if (mode === "detailed" && !breakdowns) {
+        breakdowns = await fetchReportSummary(appliedFilters);
+        setSummary(breakdowns);
+      }
 
-      pdf.addImage(logo, "PNG", 40, 30, 120, 50);
-    } catch {
-      pdf.text("<< LOGO MISSING >>", 40, 50);
+      const logo = await loadLogoDataUrl();
+
+      const pdf = buildReportPdf({
+        rows,
+        summary: breakdowns,
+        grandTotals: totals,
+        showCosts,
+        meta: pdfMeta,
+        logo,
+      });
+
+      pdf.save(`services_report_${mode}_${fileStamp}.pdf`);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to build the PDF.");
+    } finally {
+      setExporting(false);
     }
-    pdf.setFontSize(20);
-    pdf.text("Services Report", 200, 50);
-    pdf.setFontSize(10);
-
-    const stamp = new Date().toLocaleString("en-US");
-    pdf.text(`Generated: ${stamp}`, 200, 70);
-
-    pdf.setFontSize(11);
-    pdf.text(`Filters:`, 40, 105);
-
-    pdf.setFontSize(10);
-    pdf.text(
-      `Employee: ${filters.user_id ? (users.find((u) => u.id == filters.user_id)?.display_name ?? "N/A") : "All"}`,
-      40,
-      120,
-    );
-    pdf.text(
-      `Company: ${filters.company_id ? (companies.find((c) => c.id == filters.company_id)?.display_name ?? "N/A") : "All"}`,
-      40,
-      135,
-    );
-    filters.date_from &&
-      pdf.text(
-        `Date Range: ${filters.date_from || "-"} → ${filters.date_to || "-"}`,
-        40,
-        150,
-      );
-
-    /* Divider */
-    pdf.setLineWidth(1);
-    pdf.line(40, 165, 550, 165);
-
-    autoTable(pdf, {
-      startY: 185,
-      head: [
-        [
-          "Date",
-          "Company",
-          "Employee",
-          "Plate",
-          "Service",
-          "Qty",
-          "Total",
-          ...(showCosts ? ["Cost"] : []),
-        ],
-      ],
-
-      theme: "grid",
-      body: report.data.map((r: any) => [
-        r.performed_at.slice(0, 10),
-        r.company_name,
-        r.display_name ?? r.full_name ?? "—",
-        r.car_plate ?? "—",
-        r.service_type,
-        r.total_quantity,
-        Number(r.total_amount).toFixed(2),
-        ...(showCosts ? [Number(r.total_cost_amount ?? 0).toFixed(2)] : []),
-      ]),
-    });
-
-    const endY = (pdf as any).lastAutoTable.finalY;
-
-    pdf.setFontSize(13);
-    pdf.text("Summary", 40, endY + 30);
-
-    pdf.setFontSize(11);
-    pdf.text(
-      `Total Quantity: ${report.grand_totals.total_quantity}`,
-      40,
-      endY + 50,
-    );
-    pdf.text(
-      `Total Amount: $${Number(report.grand_totals.total_amount).toFixed(2)}`,
-      40,
-      endY + 70,
-    );
-    if (showCosts) {
-      pdf.text(
-        `Total Cost: $${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}`,
-        40,
-        endY + 90,
-      );
-    }
-
-    const dateSlug = new Date().toISOString().split("T")[0];
-    pdf.save(`services_report_${dateSlug}.pdf`);
   };
+
+  const resetFilters = () => setFilters({});
 
   if (!mounted) return null;
 
+  const inputClass =
+    "w-full rounded-lg border border-stroke bg-white px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-stroke-dark dark:bg-dark-2 dark:text-white dark:focus:border-primary";
+  const labelClass =
+    "mb-1.5 block text-xs font-medium uppercase tracking-wide text-dark-5 dark:text-dark-6";
+  const cardClass =
+    "rounded-xl border border-stroke bg-white shadow-sm dark:border-stroke-dark dark:bg-gray-dark";
+
   return (
-    <div className="mx-auto max-w-6xl p-8">
-      <h1 className="mb-8 text-3xl font-bold">Services Report</h1>
+    <div className="mx-auto max-w-[1400px] p-4 md:p-6">
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold text-dark dark:text-white md:text-3xl">
+          Services Report
+        </h1>
+        <p className="mt-1 text-sm text-dark-5 dark:text-dark-6">
+          Filter the service logs and export them as CSV or PDF.
+        </p>
+      </header>
 
-      <div className="mb-10 rounded-xl border bg-gray-50 p-6 dark:bg-gray-900">
-        <h2 className="mb-4 text-xl font-semibold">Filters</h2>
+      {/* ------------------------------------------------------- filters */}
+      <section className={cn(cardClass, "mb-6 p-5 md:p-6")}>
+        <h2 className="mb-4 text-base font-semibold text-dark dark:text-white">
+          Filters
+        </h2>
 
-        <label className="text-sm font-medium">Employee</label>
-        <select
-          className="mb-4 w-full rounded border bg-white p-2 dark:bg-gray-800"
-          value={filters.user_id ?? ""}
-          onChange={(e) =>
-            setFilters((f) => ({
-              ...f,
-              user_id: e.target.value ? Number(e.target.value) : undefined,
-            }))
-          }
-        >
-          <option value="">All employees</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.display_name ?? u.full_name}
-            </option>
-          ))}
-        </select>
-
-        <label className="text-sm font-medium">Company</label>
-        <select
-          className="mb-4 w-full rounded border bg-white p-2 dark:bg-gray-800"
-          value={filters.company_id ?? ""}
-          onChange={(e) =>
-            setFilters((f) => ({
-              ...f,
-              company_id: e.target.value ? Number(e.target.value) : undefined,
-            }))
-          }
-        >
-          <option value="">All companies</option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.display_name ?? c.name}
-            </option>
-          ))}
-        </select>
-
-        <label className="text-sm font-medium">Plate</label>
-        <input
-          className="mb-4 w-full rounded border bg-white p-2 dark:bg-gray-800"
-          value={filters.plate ?? ""}
-          onChange={(e) =>
-            setFilters((f) => ({
-              ...f,
-              plate: e.target.value || undefined,
-            }))
-          }
-          placeholder="Search by plate"
-        />
-
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <div>
-            <label className="text-sm font-medium">From</label>
+            <label className={labelClass}>Employee</label>
+            <select
+              className={inputClass}
+              value={filters.user_id ?? ""}
+              onChange={(e) =>
+                setFilters((f) => ({
+                  ...f,
+                  user_id: e.target.value ? Number(e.target.value) : undefined,
+                }))
+              }
+            >
+              <option value="">All employees</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.display_name ?? u.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>Company</label>
+            <select
+              className={inputClass}
+              value={filters.company_id ?? ""}
+              onChange={(e) =>
+                setFilters((f) => ({
+                  ...f,
+                  company_id: e.target.value
+                    ? Number(e.target.value)
+                    : undefined,
+                }))
+              }
+            >
+              <option value="">All companies</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.display_name ?? c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>Plate</label>
+            <input
+              className={inputClass}
+              value={filters.plate ?? ""}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, plate: e.target.value || undefined }))
+              }
+              placeholder="Search by plate"
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>From</label>
             <input
               type="date"
-              className="w-full rounded border bg-white p-2 dark:bg-gray-800"
+              className={inputClass}
               value={filters.date_from ?? ""}
               onChange={(e) =>
-                setFilters((f) => ({ ...f, date_from: e.target.value }))
+                setFilters((f) => ({
+                  ...f,
+                  date_from: e.target.value || undefined,
+                }))
               }
             />
           </div>
+
           <div>
-            <label className="text-sm font-medium">To</label>
+            <label className={labelClass}>To</label>
             <input
               type="date"
-              className="w-full rounded border bg-white p-2 dark:bg-gray-800"
+              className={inputClass}
               value={filters.date_to ?? ""}
               onChange={(e) =>
-                setFilters((f) => ({ ...f, date_to: e.target.value }))
+                setFilters((f) => ({
+                  ...f,
+                  date_to: e.target.value || undefined,
+                }))
               }
             />
           </div>
         </div>
 
-        <Button
-          className="mt-6 w-full"
-          label="Generate Report"
-          onClick={generateReport}
-        />
-      </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Button
+            label={loading ? "Generating…" : "Generate Report"}
+            shape="rounded"
+            size="small"
+            disabled={loading}
+            onClick={generateReport}
+          />
+          <Button
+            label="Clear filters"
+            variant="outlineDark"
+            shape="rounded"
+            size="small"
+            onClick={resetFilters}
+          />
+        </div>
+      </section>
 
-      {loading && <p className="text-center text-gray-500">Loading...</p>}
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-light-3 bg-red-light-6 px-4 py-3 text-sm text-red-dark">
+          {error}
+        </div>
+      )}
 
-      {report && (
+      {loading && (
+        <p className="py-10 text-center text-sm text-dark-5 dark:text-dark-6">
+          Loading…
+        </p>
+      )}
+
+      {report && !loading && (
         <>
-          <div className="mb-6 rounded-xl border bg-white p-6 shadow-md dark:bg-gray-800">
-            <h2 className="mb-2 text-lg font-semibold">Summary</h2>
-            <p>
-              Total quantity: <b>{report.grand_totals.total_quantity}</b>
+          {/* --------------------------------------------------- toolbar */}
+          <section className={cn(cardClass, "mb-6 p-5 md:p-6")}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <span className={labelClass}>Report type</span>
+                <div className="inline-flex rounded-lg border border-stroke bg-gray-1 p-1 dark:border-stroke-dark dark:bg-dark-2">
+                  {MODES.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setMode(option.value)}
+                      aria-pressed={mode === option.value}
+                      className={cn(
+                        "rounded-md px-5 py-2 text-sm font-medium transition",
+                        mode === option.value
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-dark-5 hover:text-dark dark:text-dark-6 dark:hover:text-white",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 max-w-md text-xs text-dark-5 dark:text-dark-6">
+                  {MODES.find((m) => m.value === mode)?.hint}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  label="Export CSV"
+                  variant="outlineDark"
+                  shape="rounded"
+                  size="small"
+                  onClick={exportCSV}
+                />
+                <Button
+                  label={exporting ? "Building…" : "Export PDF"}
+                  shape="rounded"
+                  size="small"
+                  disabled={exporting}
+                  onClick={exportPDF}
+                />
+              </div>
+            </div>
+
+            {/* KPIs */}
+            <dl className="mt-6 grid gap-4 border-t border-stroke pt-5 dark:border-stroke-dark sm:grid-cols-2 lg:grid-cols-4">
+              <Stat label="Entries" value={String(rows.length)} />
+              <Stat
+                label="Total quantity"
+                value={String(totals?.total_quantity ?? 0)}
+              />
+              <Stat
+                label="Total revenue"
+                value={money(totals?.total_amount)}
+                accent
+              />
+              {showCosts && (
+                <Stat label="Total cost" value={money(totals?.total_cost_amount)} />
+              )}
+            </dl>
+
+            <p className="mt-4 text-xs text-dark-5 dark:text-dark-6">
+              Period: {labelForPeriod(appliedFilters)} · {pdfMeta.companyLabel} ·{" "}
+              {pdfMeta.employeeLabel}
             </p>
-            <p>
-              Total revenue:{" "}
-              <b>${Number(report.grand_totals.total_amount).toFixed(2)}</b>
-            </p>
-            {showCosts && (
-              <p>
-                Total cost:{" "}
-                <b>
-                  ${Number(report.grand_totals.total_cost_amount ?? 0).toFixed(2)}
-                </b>
+
+            {report.truncated && (
+              <p className="mt-2 text-xs font-medium text-red">
+                Too many rows for a single export — narrow the date range to
+                include everything.
               </p>
             )}
+          </section>
 
-            <div className="mt-4 flex gap-4">
-              <Button label="Export CSV" onClick={exportCSV} />
-              <Button label="Export PDF" variant="dark" onClick={exportPDF} />
-            </div>
-          </div>
+          {/* ------------------------------------------------ breakdowns */}
+          {mode === "detailed" && (
+            <SummaryBlocks
+              summary={summary}
+              loading={loadingSummary}
+              showCosts={showCosts}
+            />
+          )}
 
-          <div className="overflow-auto rounded-xl border shadow-lg">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-200 text-left text-gray-800 dark:bg-gray-700 dark:text-white">
-                <tr>
-                  <th className="p-3">Date</th>
-                  <th className="p-3">Employee</th>
-                  <th className="p-3">Company</th>
-                  <th className="p-3">Plate</th>
-                  <th className="p-3">Service</th>
-                  <th className="p-3 text-center">Qty</th>
-                  <th className="p-3 text-right">Total</th>
-                  {showCosts && <th className="p-3 text-right">Cost</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {report.data.map((r: any, i: number) => (
-                  <tr key={i} className="odd:bg-gray-50 dark:odd:bg-gray-800">
-                    <td className="p-3">{r.performed_at.slice(0, 10)}</td>
-                    <td className="p-3">
-                      {r.display_name ?? r.full_name ?? "—"}
-                    </td>
-                    <td className="p-3">{r.company_name}</td>
-                    <td className="p-3">{r.car_plate ?? "—"}</td>
-                    <td className="p-3">{r.service_type}</td>
-                    <td className="p-3 text-center">{r.total_quantity}</td>
-                    <td className="p-3 text-right">
-                      ${Number(r.total_amount).toFixed(2)}
-                    </td>
-                    {showCosts && (
-                      <td className="p-3 text-right">
-                        ${Number(r.total_cost_amount ?? 0).toFixed(2)}
-                      </td>
-                    )}
+          {/* ----------------------------------------------------- table */}
+          <section className={cn(cardClass, "overflow-hidden")}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-max text-sm">
+                <thead className="bg-dark text-left text-white">
+                  <tr>
+                    {columns.map((col) => (
+                      <th
+                        key={col.key}
+                        className={cn(
+                          "whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide",
+                          col.align === "right" && "text-right",
+                          col.align === "center" && "text-center",
+                        )}
+                      >
+                        {col.header}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
+                </thead>
 
-              <tfoot>
-                <tr className="bg-gray-100 text-left font-semibold dark:bg-gray-700">
-                  <td className="p-3">TOTAL</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td className="p-3 text-center">
-                    {report.grand_totals.total_quantity}
-                  </td>
-                  <td className="p-3 text-right">
-                    ${Number(report.grand_totals.total_amount).toFixed(2)}
-                  </td>
-                  {showCosts && (
-                    <td className="p-3 text-right">
-                      $
-                      {Number(report.grand_totals.total_cost_amount ?? 0).toFixed(
-                        2,
-                      )}
-                    </td>
+                <tbody>
+                  {rows.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={columns.length}
+                        className="px-4 py-10 text-center text-dark-5 dark:text-dark-6"
+                      >
+                        No service logs match these filters.
+                      </td>
+                    </tr>
                   )}
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+
+                  {rows.map((row, index) => (
+                    <tr
+                      key={index}
+                      className="border-t border-stroke odd:bg-gray-1 hover:bg-primary/5 dark:border-stroke-dark dark:odd:bg-dark-2"
+                    >
+                      {columns.map((col) => (
+                        <td
+                          key={col.key}
+                          className={cn(
+                            "px-4 py-3 text-dark dark:text-white",
+                            col.align === "right" && "text-right tabular-nums",
+                            col.align === "center" && "text-center",
+                            col.key === "notes" && "max-w-xs",
+                          )}
+                        >
+                          {col.value(row)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+
+                {rows.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-stroke bg-primary/10 font-semibold dark:border-stroke-dark">
+                      {columns.map((col, index) => (
+                        <td
+                          key={col.key}
+                          className={cn(
+                            "px-4 py-3 text-dark dark:text-white",
+                            col.align === "right" && "text-right tabular-nums",
+                            col.align === "center" && "text-center",
+                          )}
+                        >
+                          {index === 0 && "TOTAL"}
+                          {col.key === "quantity" &&
+                            String(totals?.total_quantity ?? 0)}
+                          {col.key === "total" && money(totals?.total_amount)}
+                          {col.key === "cost" &&
+                            money(totals?.total_cost_amount)}
+                          {col.key === "margin" &&
+                            money(
+                              num(totals?.total_amount) -
+                                num(totals?.total_cost_amount),
+                            )}
+                        </td>
+                      ))}
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </section>
         </>
       )}
     </div>
   );
 }
 
-
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-wide text-dark-5 dark:text-dark-6">
+        {label}
+      </dt>
+      <dd
+        className={cn(
+          "mt-1 text-2xl font-bold tabular-nums",
+          accent ? "text-primary" : "text-dark dark:text-white",
+        )}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
