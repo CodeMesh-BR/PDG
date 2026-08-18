@@ -13,7 +13,14 @@ import {
   type ServicesReport,
   type ServicesSummary,
 } from "./api";
-import { getColumns, money, num, type ReportMode } from "./columns";
+import { ColumnsMenu } from "./ColumnsMenu";
+import {
+  defaultVisibleDetailedKeys,
+  getColumns,
+  money,
+  num,
+  type ReportMode,
+} from "./columns";
 import { buildReportPdf, loadLogoDataUrl, type PdfMeta } from "./reportPdf";
 import { SummaryBlocks } from "./SummaryBlocks";
 
@@ -52,14 +59,28 @@ export default function ServicesReportPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [showCosts, setShowCosts] = useState(true);
+  const [visibleDetailColumns, setVisibleDetailColumns] = useState<Set<string>>(
+    () => defaultVisibleDetailedKeys(true),
+  );
 
   useEffect(() => {
     setMounted(true);
-    setShowCosts(canSeeCosts(getStoredRole()));
+    const canCosts = canSeeCosts(getStoredRole());
+    setShowCosts(canCosts);
+    setVisibleDetailColumns(defaultVisibleDetailedKeys(canCosts));
 
     fetchUsers().then(setUsers).catch(() => setUsers([]));
     fetchCompanies().then(setCompanies).catch(() => setCompanies([]));
   }, []);
+
+  const toggleDetailColumn = (key: string) => {
+    setVisibleDetailColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const loadSummary = useCallback(async (target: ReportFilters) => {
     setSummaryRequested(true);
@@ -102,8 +123,14 @@ export default function ServicesReportPage() {
   }, [mode, report, summaryRequested, appliedFilters, loadSummary]);
 
   const columns = useMemo(
-    () => getColumns(mode, showCosts, true),
-    [mode, showCosts],
+    () =>
+      getColumns(
+        mode,
+        showCosts,
+        true,
+        mode === "detailed" ? visibleDetailColumns : undefined,
+      ),
+    [mode, showCosts, visibleDetailColumns],
   );
 
   const rows = report?.data ?? [];
@@ -171,6 +198,7 @@ export default function ServicesReportPage() {
         showCosts,
         meta: pdfMeta,
         logo,
+        visibleDetailColumns: mode === "detailed" ? visibleDetailColumns : undefined,
       });
 
       pdf.save(`services_report_${mode}_${fileStamp}.pdf`);
@@ -357,7 +385,14 @@ export default function ServicesReportPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-start gap-3">
+                {mode === "detailed" && (
+                  <ColumnsMenu
+                    showCosts={showCosts}
+                    visible={visibleDetailColumns}
+                    onToggle={toggleDetailColumn}
+                  />
+                )}
                 <Button
                   label="Export CSV"
                   variant="outlineDark"

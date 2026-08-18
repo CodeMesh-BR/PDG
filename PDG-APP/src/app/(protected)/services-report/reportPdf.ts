@@ -67,6 +67,7 @@ type BuildArgs = {
   showCosts: boolean;
   meta: PdfMeta;
   logo: string | null;
+  visibleDetailColumns?: Set<string>;
 };
 
 /* ---------------------------------------------------------------- helpers */
@@ -391,6 +392,7 @@ export function buildReportPdf({
   showCosts,
   meta,
   logo,
+  visibleDetailColumns,
 }: BuildArgs): jsPDF {
   const detailed = meta.mode === "detailed";
 
@@ -402,7 +404,7 @@ export function buildReportPdf({
 
   if (detailed) {
     /* uma seção por empresa, cada uma começando em página nova */
-    const columns = getColumns("detailed", showCosts, false);
+    const columns = getColumns("detailed", showCosts, false, visibleDetailColumns);
     const styles = tableTheme(columns, available);
     const groups = groupByCompany(rows);
 

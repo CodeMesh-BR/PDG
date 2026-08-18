@@ -44,15 +44,44 @@ const condition = (v?: string | null) => {
   return dash(v);
 };
 
+/** Colunas extras do modo detalhado que o usuário pode ligar/desligar. */
+export const DETAILED_COLUMN_OPTIONS: {
+  key: string;
+  label: string;
+  costOnly?: boolean;
+}[] = [
+  { key: "stock_number", label: "Stock #" },
+  { key: "vehicle_condition", label: "Condition" },
+  { key: "department", label: "Department" },
+  { key: "service_description", label: "Description" },
+  { key: "unit_value", label: "Unit value" },
+  { key: "unit_cost", label: "Unit cost", costOnly: true },
+  { key: "margin", label: "Margin", costOnly: true },
+  { key: "notes", label: "Notes" },
+];
+
+export const defaultVisibleDetailedKeys = (showCosts: boolean) =>
+  new Set(
+    DETAILED_COLUMN_OPTIONS.filter((o) => !o.costOnly || showCosts).map(
+      (o) => o.key,
+    ),
+  );
+
 /**
  * Colunas do relatório. `includeCompany` fica falso no PDF detalhado, onde a
  * empresa vira o título da seção em vez de repetir em cada linha.
+ * `visibleDetailKeys` filtra as colunas extras do modo detalhado; quando
+ * omitido, todas entram (comportamento original).
  */
 export function getColumns(
   mode: ReportMode,
   showCosts: boolean,
   includeCompany = true,
+  visibleDetailKeys?: Set<string>,
 ): Column[] {
+  const showDetail = (key: string) =>
+    !visibleDetailKeys || visibleDetailKeys.has(key);
+
   const cols: Column[] = [
     {
       key: "date",
@@ -91,29 +120,33 @@ export function getColumns(
   );
 
   if (mode === "detailed") {
-    cols.push(
-      {
+    if (showDetail("stock_number")) {
+      cols.push({
         key: "stock_number",
         header: "Stock #",
         align: "left",
         weight: 1,
         value: (r) => dash(r.stock_number),
-      },
-      {
+      });
+    }
+    if (showDetail("vehicle_condition")) {
+      cols.push({
         key: "vehicle_condition",
         header: "Cond.",
         align: "center",
         weight: 0.7,
         value: (r) => condition(r.vehicle_condition),
-      },
-      {
+      });
+    }
+    if (showDetail("department")) {
+      cols.push({
         key: "department",
         header: "Department",
         align: "left",
         weight: 1.3,
         value: (r) => dash(r.department_name),
-      },
-    );
+      });
+    }
   }
 
   cols.push({
@@ -125,23 +158,25 @@ export function getColumns(
   });
 
   if (mode === "detailed") {
-    cols.push(
-      {
+    if (showDetail("service_description")) {
+      cols.push({
         key: "service_description",
         header: "Description",
         align: "left",
         weight: 2,
         value: (r) => dash(r.service_description),
-      },
-      {
+      });
+    }
+    if (showDetail("unit_value")) {
+      cols.push({
         key: "unit_value",
         header: "Unit",
         align: "right",
         weight: 0.9,
         value: (r) => money(r.service_unit_value),
         raw: (r) => num(r.service_unit_value).toFixed(2),
-      },
-    );
+      });
+    }
   }
 
   cols.push(
@@ -164,7 +199,7 @@ export function getColumns(
   );
 
   if (showCosts) {
-    if (mode === "detailed") {
+    if (mode === "detailed" && showDetail("unit_cost")) {
       cols.push({
         key: "unit_cost",
         header: "Unit Cost",
@@ -184,7 +219,7 @@ export function getColumns(
       raw: (r) => num(r.total_cost_amount).toFixed(2),
     });
 
-    if (mode === "detailed") {
+    if (mode === "detailed" && showDetail("margin")) {
       cols.push({
         key: "margin",
         header: "Margin",
@@ -196,7 +231,7 @@ export function getColumns(
     }
   }
 
-  if (mode === "detailed") {
+  if (mode === "detailed" && showDetail("notes")) {
     cols.push({
       key: "notes",
       header: "Notes",
