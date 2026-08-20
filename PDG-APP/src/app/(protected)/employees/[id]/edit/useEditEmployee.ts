@@ -110,11 +110,6 @@ export function useEditEmployee() {
     setError("");
     setSuccess("");
 
-    if (user.role === "client" && companyIds.length === 0) {
-      setError("Client users must be linked to at least one company.");
-      return;
-    }
-
     try {
       setSaving(true);
 

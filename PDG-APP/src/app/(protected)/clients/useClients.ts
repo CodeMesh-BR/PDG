@@ -1,25 +1,25 @@
 import { API_BASE_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
 
-export interface EmployeeListItem {
+export interface ClientListItem {
   id: number;
   display_name: string;
   full_name: string;
   email: string;
+  phone?: string;
+  address?: string;
   role: string;
   created_at: string;
-  availability?: string[];
   companies?: { id: number; name: string; display_name?: string }[];
-  contract_pdf_path?: string;
 }
 
-export function useEmployees() {
-  const [users, setUsers] = useState<EmployeeListItem[]>([]);
+export function useClients() {
+  const [clients, setClients] = useState<ClientListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchUsers = async () => {
+  const fetchClients = async () => {
     try {
       setLoading(true);
       setError("");
@@ -33,13 +33,14 @@ export function useEmployees() {
         },
       });
 
-      if (!res.ok) throw new Error(`Failed to fetch users: ${res.statusText}`);
+      if (!res.ok) throw new Error(`Failed to fetch clients: ${res.statusText}`);
       const data = await res.json();
 
-      // Clients get their own registration screen — keep them out of Employees.
-      const staff = (data.data || []).filter((u: EmployeeListItem) => u.role !== "client");
-      setUsers(staff);
-      setTotal(staff.length);
+      const onlyClients = (data.data || []).filter(
+        (u: ClientListItem) => u.role === "client",
+      );
+      setClients(onlyClients);
+      setTotal(onlyClients.length);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -48,8 +49,8 @@ export function useEmployees() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchClients();
   }, []);
 
-  return { users, total, loading, error, refresh: fetchUsers };
+  return { clients, total, loading, error, refresh: fetchClients };
 }

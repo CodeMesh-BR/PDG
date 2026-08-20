@@ -85,7 +85,6 @@ export default function EditEmployeePage() {
             className="w-full rounded border p-2"
           >
             <option value="admin">Admin</option>
-            <option value="client">Client</option>
             <option value="supervisor">Supervisor</option>
             <option value="detailer">Detailer</option>
           </select>

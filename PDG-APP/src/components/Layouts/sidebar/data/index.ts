@@ -10,6 +10,7 @@ import {
   Car,
   FileText,
   FileSpreadsheet,
+  Contact,
 } from "lucide-react";
 
 type NavItem = {
@@ -38,6 +39,7 @@ export const NAV_DATA: NavSection[] = [
         items: [],
       },
       { title: "Employees", icon: Users, url: "/employees", items: [] },
+      { title: "Clients", icon: Contact, url: "/clients", items: [] },
       { title: "Start Service", icon: Car, url: "/start-service", items: [] },
       {
         title: "Services Report",
