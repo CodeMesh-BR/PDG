@@ -34,6 +34,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'display_name' => ['sometimes', 'string', 'min:2', 'max:150'],
             'full_name'    => ['sometimes', 'string', 'min:3', 'max:150'],
+            'role'         => ['sometimes', 'string', 'max:50'],
 
             'password' => ['sometimes', 'string', 'min:8', 'max:16', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,16}$/', 'confirmed'],
             'current_password' => ['nullable', 'string'],
@@ -52,6 +53,22 @@ class UserController extends Controller
         ], [
             'password.regex' => 'Password must be 8-16 characters long, with letters and numbers.',
         ]);
+
+        if (!$actor->isAdmin()) {
+            unset($validated['role']);
+        }
+
+        $nextRole = $validated['role'] ?? $user->role;
+        $nextCompanyIds = $request->has('company_ids')
+            ? $request->array('company_ids')
+            : $user->companies()->pluck('companies.id')->all();
+
+        if ($actor->isAdmin() && $nextRole === 'client' && empty($nextCompanyIds)) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors'  => ['company_ids' => ['Client users must be linked to at least one company.']],
+            ], 422);
+        }
 
         if ($request->hasFile('contract_pdf')) {
             $path = $request->file('contract_pdf')->store('contracts', 'public');

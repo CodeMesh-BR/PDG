@@ -19,6 +19,7 @@ import ProfilePage from "@/app/(protected)/profile/page";
 import ServicesCatalogPage from "@/app/(protected)/services-catalog/page";
 import EditServicesCatalogPage from "@/app/(protected)/services-catalog/[id]/edit/page";
 import ServicesReportPage from "@/app/(protected)/services-report/page";
+import ClientReportPage from "@/app/(protected)/client-report/page";
 import StartServicePage from "@/app/(protected)/start-service/page";
 import EditStartServicePage from "@/app/(protected)/start-service/[id]/edit/page";
 import ForgotPasswordPage from "@/app/auth/forgot-password/page";
@@ -48,6 +49,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 element={<EditServicesCatalogPage />}
               />
               <Route path="/services-report" element={<ServicesReportPage />} />
+              <Route path="/client-report" element={<ClientReportPage />} />
               <Route path="/start-service" element={<StartServicePage />} />
               <Route path="/start-service/:id/edit" element={<EditStartServicePage />} />
             </Route>

@@ -10,6 +10,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\PlateOcrController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ClientReportController;
 use App\Http\Controllers\DashboardController;
 
 // Auth (público)
@@ -22,51 +23,57 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
 
-    // Users
-    Route::post('/users', [UserRegistrationController::class, 'store']);
-    Route::get('/users', [UserController::class, 'index']);
-    Route::get('/users/{user}', [UserController::class, 'show']);
-    Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update']);
-    Route::delete('/users/{user}', [UserController::class, 'destroy']);
+    // Client-facing report (the only report endpoint the `client` role may call)
+    Route::get('/reports/client', [ClientReportController::class, 'index']);
 
-    // Services
-    Route::post('/services', [ServiceController::class, 'store']);
-    Route::get('/services', [ServiceController::class, 'index']);
-    Route::get('/services/{service}', [ServiceController::class, 'show']);
-    Route::match(['put', 'patch'], '/services/{service}', [ServiceController::class, 'update']);
-    Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
-
-    // Departments
-    Route::post('/departments', [DepartmentController::class, 'store']);
-    Route::get('/departments', [DepartmentController::class, 'index']);
-    Route::get('/departments/{department}', [DepartmentController::class, 'show']);
-    Route::match(['put', 'patch'], '/departments/{department}', [DepartmentController::class, 'update']);
-    Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
-
-    // Companies
-    Route::post('/companies', [CompanyController::class, 'store']);
-    Route::get('/companies', [CompanyController::class, 'index']);
-    Route::get('/companies/{company}', [CompanyController::class, 'show']);
-    Route::match(['put', 'patch'], '/companies/{company}', [CompanyController::class, 'update']);
-    Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
-
-    // Plate OCR
-    Route::post('/plate-ocr', [PlateOcrController::class, 'readPlate']);
-    Route::post('/plate-ocr/debug', [PlateOcrController::class, 'debug']);
-    Route::post('/plate-ocr/ping', [PlateOcrController::class, 'ping']);
-
-    // Services Logs
-    Route::post('/service-logs', [ServiceLogController::class, 'store']);
-    Route::get('/service-logs',  [ServiceLogController::class, 'index']);
-    Route::get('/service-logs/{serviceLog}',  [ServiceLogController::class, 'show']);
-    Route::match(['put', 'patch'], '/service-logs/{serviceLog}',  [ServiceLogController::class, 'update']);
-    Route::delete('/service-logs/{serviceLog}',  [ServiceLogController::class, 'destroy']);
-
-    // Reports
-    Route::get('/reports/services', [ReportController::class, 'services']);
-    Route::get('/reports/services/summary', [ReportController::class, 'servicesSummary']);
-
-    // Dashboard
+    // Dashboard (implicitly company-scoped for every role, including `client`)
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
     Route::get('/dashboard/today-by-company', [DashboardController::class, 'todayByCompany']);
+
+    // Everything below is off-limits to the `client` role.
+    Route::middleware('not-client')->group(function () {
+        // Users
+        Route::post('/users', [UserRegistrationController::class, 'store']);
+        Route::get('/users', [UserController::class, 'index']);
+        Route::get('/users/{user}', [UserController::class, 'show']);
+        Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update']);
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
+
+        // Services
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::get('/services', [ServiceController::class, 'index']);
+        Route::get('/services/{service}', [ServiceController::class, 'show']);
+        Route::match(['put', 'patch'], '/services/{service}', [ServiceController::class, 'update']);
+        Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
+
+        // Departments
+        Route::post('/departments', [DepartmentController::class, 'store']);
+        Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/departments/{department}', [DepartmentController::class, 'show']);
+        Route::match(['put', 'patch'], '/departments/{department}', [DepartmentController::class, 'update']);
+        Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
+
+        // Companies
+        Route::post('/companies', [CompanyController::class, 'store']);
+        Route::get('/companies', [CompanyController::class, 'index']);
+        Route::get('/companies/{company}', [CompanyController::class, 'show']);
+        Route::match(['put', 'patch'], '/companies/{company}', [CompanyController::class, 'update']);
+        Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
+
+        // Plate OCR
+        Route::post('/plate-ocr', [PlateOcrController::class, 'readPlate']);
+        Route::post('/plate-ocr/debug', [PlateOcrController::class, 'debug']);
+        Route::post('/plate-ocr/ping', [PlateOcrController::class, 'ping']);
+
+        // Services Logs
+        Route::post('/service-logs', [ServiceLogController::class, 'store']);
+        Route::get('/service-logs',  [ServiceLogController::class, 'index']);
+        Route::get('/service-logs/{serviceLog}',  [ServiceLogController::class, 'show']);
+        Route::match(['put', 'patch'], '/service-logs/{serviceLog}',  [ServiceLogController::class, 'update']);
+        Route::delete('/service-logs/{serviceLog}',  [ServiceLogController::class, 'destroy']);
+
+        // Reports (staff-facing — exposes employee names and costs)
+        Route::get('/reports/services', [ReportController::class, 'services']);
+        Route::get('/reports/services/summary', [ReportController::class, 'servicesSummary']);
+    });
 });

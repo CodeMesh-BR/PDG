@@ -78,6 +78,8 @@ export default function EmployeeForm({ onSuccess }: Props) {
     if (!form.email.trim() || !emailRegex.test(form.email))
       return "Please enter a valid email address.";
     if (!form.role) return "Role is required.";
+    if (form.role === "client" && companyIds.length === 0)
+      return "Client users must be linked to at least one company.";
 
     if (!passwordRegex.test(form.password)) {
       return "Password must be 8–16 characters and include letters and numbers.";

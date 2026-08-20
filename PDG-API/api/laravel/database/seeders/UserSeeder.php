@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Service;
+use App\Models\Company;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -38,6 +39,22 @@ class UserSeeder extends Seeder
                 'availability' => ['sat', 'sun'],
             ]
         );
+
+        // Cliente de demonstração, vinculado à empresa "Alpha Central"
+        $client = User::updateOrCreate(
+            ['email' => 'client@example.com'],
+            [
+                'display_name' => 'Client',
+                'full_name'    => 'Demo Client',
+                'password'     => Hash::make('client12345'),
+                'role'         => 'client',
+            ]
+        );
+
+        $alpha = Company::where('email', 'alpha@example.com')->first();
+        if ($alpha) {
+            $client->companies()->sync([$alpha->id]);
+        }
 
         // +10 usuários aleatórios
         User::factory()->count(10)->create();

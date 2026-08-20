@@ -9,6 +9,7 @@ import {
   Users,
   Car,
   FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 
 type NavItem = {
@@ -42,6 +43,12 @@ export const NAV_DATA: NavSection[] = [
         title: "Services Report",
         icon: FileText,
         url: "/services-report",
+        items: [],
+      },
+      {
+        title: "Client Report",
+        icon: FileSpreadsheet,
+        url: "/client-report",
         items: [],
       },
     ],

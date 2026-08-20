@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
             \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
         ]);
+
+        $middleware->alias([
+            'not-client' => \App\Http\Middleware\EnsureNotClient::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->shouldRenderJsonWhen(

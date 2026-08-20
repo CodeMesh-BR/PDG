@@ -58,6 +58,13 @@ class UserRegistrationController extends Controller
             return response()->json(['message' => 'Email already exists.'], 409);
         }
 
+        if ($validated['role'] === 'client' && empty($validated['company_ids'])) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors'  => ['company_ids' => ['Client users must be linked to at least one company.']],
+            ], 422);
+        }
+
         try {
             $user = User::create([
                 'display_name'              => $validated['display_name'],

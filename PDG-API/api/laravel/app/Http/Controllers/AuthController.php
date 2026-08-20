@@ -77,6 +77,9 @@ class AuthController extends Controller
                 'email'        => $u->email,
                 'role'         => $u->role,
                 'expires_at'   => optional($u->currentAccessToken())->expires_at,
+                'companies'    => $u->isRestrictedToCompanies()
+                    ? $u->companies()->select('companies.id', 'companies.display_name')->get()
+                    : null,
             ]
         ]);
     }

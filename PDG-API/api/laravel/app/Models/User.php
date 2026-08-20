@@ -67,7 +67,7 @@ class User extends Authenticatable
 
     public function canSeeCosts(): bool
     {
-        return !$this->isSupervisor();
+        return !in_array($this->roleName(), ['supervisor', 'client'], true);
     }
 
     /**

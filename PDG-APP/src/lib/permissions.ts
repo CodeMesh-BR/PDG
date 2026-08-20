@@ -8,6 +8,13 @@ const SUPERVISOR_PATHS = [
   "/profile",
 ];
 
+/** Routes a client is allowed to open: their own dashboard and report. */
+const CLIENT_PATHS = [
+  "/",
+  "/client-report",
+  "/profile",
+];
+
 export function getStoredRole(): Role {
   if (typeof window === "undefined") return "";
   return (localStorage.getItem("role") || "").toLowerCase();
@@ -28,12 +35,18 @@ export function canAccessPath(path: string, role: Role | null): boolean {
     return path.startsWith("/start-service") || path.startsWith("/profile");
   }
 
+  if (role === "client") {
+    return CLIENT_PATHS.some(
+      (allowed) => path === allowed || (allowed !== "/" && path.startsWith(allowed)),
+    );
+  }
+
   return false;
 }
 
-/** Cost values (what we pay the detailer) are hidden from supervisors. */
+/** Cost values (what we pay the detailer) are hidden from supervisors and clients. */
 export function canSeeCosts(role: Role | null): boolean {
-  return role !== "supervisor";
+  return role !== "supervisor" && role !== "client";
 }
 
 /** Only the admin edits/deletes service entries created by other users. */
@@ -45,5 +58,6 @@ export function canManageAllServiceLogs(role: Role | null): boolean {
 export function fallbackPathFor(role: Role | null): string {
   if (role === "detailer") return "/start-service";
   if (role === "supervisor") return "/";
+  if (role === "client") return "/";
   return "/unauthorized";
 }
