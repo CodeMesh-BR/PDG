@@ -88,6 +88,12 @@ export default function StartServicePage() {
                 Total value: ${totalValue.toFixed(2)}
               </p>
             )}
+            {service.truncated && (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Showing the first {service.logs.length} services. Pick a date
+                to narrow the list.
+              </p>
+            )}
           </div>
 
           <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">

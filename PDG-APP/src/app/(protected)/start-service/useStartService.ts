@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Company,
   Service,
@@ -268,6 +268,7 @@ async function prepareImageForOcr(
 export interface UseStartServiceResult {
   logs: ServiceLog[];
   total: number;
+  truncated: boolean;
   loadingLogs: boolean;
   errorLogs: string | null;
   refreshLogs: () => Promise<void>;
@@ -316,20 +317,29 @@ export function useStartService(): UseStartServiceResult {
   );
   const [logs, setLogs] = useState<ServiceLog[]>([]);
   const [total, setTotal] = useState(0);
+  const [truncated, setTruncated] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [errorLogs, setErrorLogs] = useState<string | null>(null);
+  // Loading walks several API pages, so a slower response for a previous date
+  // must not overwrite the list of the date selected afterwards.
+  const logsRequestId = useRef(0);
 
   const refreshLogs = async () => {
+    const requestId = ++logsRequestId.current;
+    const isCurrent = () => requestId === logsRequestId.current;
+
     try {
       setLoadingLogs(true);
       setErrorLogs(null);
       const result = await fetchServiceLogs(selectedDate);
+      if (!isCurrent()) return;
       setLogs(result.data);
       setTotal(result.total);
+      setTruncated(result.truncated);
     } catch {
-      setErrorLogs("Erro ao carregar serviços de hoje.");
+      if (isCurrent()) setErrorLogs("Erro ao carregar serviços de hoje.");
     } finally {
-      setLoadingLogs(false);
+      if (isCurrent()) setLoadingLogs(false);
     }
   };
 
@@ -625,6 +635,7 @@ export function useStartService(): UseStartServiceResult {
   return {
     logs,
     total,
+    truncated,
     loadingLogs,
     errorLogs,
     refreshLogs,

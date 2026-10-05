@@ -140,22 +140,45 @@ export async function fetchCompanyServices(
   return res.data?.data?.services ?? [];
 }
 
+// The API pages service logs in fixed chunks of 20; this caps the walk so an
+// unfiltered ("all dates") list can't flood the browser with requests.
+const SERVICE_LOGS_MAX_PAGES = 100;
+
 export async function fetchServiceLogs(date: string): Promise<{
   total: number;
   data: ServiceLog[];
+  truncated: boolean;
 }> {
   const day = date.slice(0, 10);
+  const data: ServiceLog[] = [];
 
-  const res = await request<Paginated<ServiceLog>>(
-    `${API_URL}/service-logs?date=${day}`,
-    {
-      headers: authHeaders(),
-    },
-  );
+  let page = 1;
+  let lastPage = 1;
+  let total = 0;
+
+  do {
+    const res = await request<Paginated<ServiceLog>>(
+      `${API_URL}/service-logs?date=${day}&page=${page}`,
+      {
+        headers: authHeaders(),
+      },
+    );
+
+    if (res.status < 200 || res.status >= 300 || !res.data) {
+      throw new Error(`Failed to load service logs (${res.status})`);
+    }
+
+    if (page === 1) total = res.data.total ?? 0;
+
+    data.push(...(res.data.data ?? []));
+    lastPage = Number(res.data.last_page ?? 1);
+    page += 1;
+  } while (page <= lastPage && page <= SERVICE_LOGS_MAX_PAGES);
 
   return {
-    total: res.data?.total ?? 0,
-    data: res.data?.data ?? [],
+    total,
+    data,
+    truncated: lastPage > SERVICE_LOGS_MAX_PAGES,
   };
 }
 

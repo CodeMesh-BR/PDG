@@ -2,7 +2,10 @@
 
 import type { ServiceLog } from "../types";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Pencil, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import ListPagination from "./ListPagination";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 interface Props {
   logs: ServiceLog[];
@@ -80,6 +83,21 @@ export default function StartServiceList({
     });
   }, [logs, sortKey, sortDirection]);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const lastPage = Math.max(1, Math.ceil(sortedLogs.length / pageSize));
+  // Clamped at render so a shrinking list never leaves an empty page selected.
+  const currentPage = Math.min(page, lastPage);
+
+  useEffect(() => {
+    setPage(1);
+  }, [logs, sortKey, sortDirection, pageSize]);
+
+  const pagedLogs = sortedLogs.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
   const SortableHeader = ({
     label,
     sortBy,
@@ -149,7 +167,7 @@ export default function StartServiceList({
           </thead>
 
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {sortedLogs.map((log) => {
+            {pagedLogs.map((log) => {
               const onlyDate = log.performed_at.slice(0, 10);
               const [year, month, day] = onlyDate.split("-");
               const formatted = `${day}/${month}/${year}`;
@@ -228,6 +246,15 @@ export default function StartServiceList({
           </tbody>
         </table>
       </div>
+
+      <ListPagination
+        page={currentPage}
+        pageSize={pageSize}
+        totalItems={sortedLogs.length}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }
