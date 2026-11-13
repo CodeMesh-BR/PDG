@@ -181,7 +181,7 @@ Object.entries(payload).forEach(([key, value]) => {
 
       setSuccess("Employee updated successfully!");
 
-      navigate("/employees");
+      navigate("/users");
     } catch (err: any) {
       setError(err.message);
     } finally {

@@ -6,12 +6,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui-elements/button";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
 import { useCompanies } from "../../../companies/useCompanies";
+import { ROLE_LABELS, type CompanyScopedUserRole } from "@/lib/permissions";
 
 interface Props {
   onSuccess?: () => void;
+  /** Same form serves every company-scoped user type. */
+  role?: CompanyScopedUserRole;
 }
 
-export default function ClientForm({ onSuccess }: Props) {
+export default function ClientForm({ onSuccess, role = "client" }: Props) {
+  const typeLabel = ROLE_LABELS[role];
+
   const [form, setForm] = useState({
     display_name: "",
     full_name: "",
@@ -64,7 +69,7 @@ export default function ClientForm({ onSuccess }: Props) {
     }
 
     if (companyIds.length === 0)
-      return "Client must be linked to at least one company.";
+      return `${typeLabel} must be linked to at least one company.`;
 
     return null;
   };
@@ -88,7 +93,7 @@ export default function ClientForm({ onSuccess }: Props) {
 
       const payload = {
         ...form,
-        role: "client",
+        role,
         company_ids: companyIds,
       };
 
@@ -104,7 +109,8 @@ export default function ClientForm({ onSuccess }: Props) {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || "Failed to create client.");
+      if (!res.ok)
+        throw new Error(data.message || `Failed to create ${typeLabel}.`);
 
       setForm({
         display_name: "",
@@ -116,7 +122,7 @@ export default function ClientForm({ onSuccess }: Props) {
       });
       setCompanyIds([]);
 
-      setSuccess("Client created successfully!");
+      setSuccess(`${typeLabel} created successfully!`);
       onSuccess?.();
     } catch (err: any) {
       setError(err.message);
@@ -130,7 +136,7 @@ export default function ClientForm({ onSuccess }: Props) {
       onSubmit={handleSubmit}
       className="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-gray-900"
     >
-      <h2 className="text-lg font-semibold">Add New Client</h2>
+      <h2 className="text-lg font-semibold">Add New {typeLabel}</h2>
 
       {error && <FormAlert type="error" message={error} />}
       {success && <FormAlert type="success" message={success} />}
@@ -208,7 +214,7 @@ export default function ClientForm({ onSuccess }: Props) {
       </div>
 
       <Button
-        label={loading ? "Saving..." : "Save Client"}
+        label={loading ? "Saving..." : `Save ${typeLabel}`}
         type="submit"
         disabled={loading}
       />

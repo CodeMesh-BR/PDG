@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'not-client' => \App\Http\Middleware\EnsureNotClient::class,
+            'deny-roles' => \App\Http\Middleware\EnsureNotClient::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

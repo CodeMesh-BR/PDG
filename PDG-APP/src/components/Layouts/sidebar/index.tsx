@@ -17,14 +17,24 @@ export function Sidebar({ role }: { role?: Role | null }) {
 
   const effectiveRole = role ?? getStoredRole();
 
-  // Only show the entries this role is actually allowed to open.
+  // Only show the entries this role is actually allowed to open. A parent with
+  // sub-items stays visible only while at least one of them is reachable.
   const navData = useMemo(
     () =>
       NAV_DATA.map((section) => ({
         ...section,
-        items: section.items.filter((item) =>
-          canAccessPath(item.url, effectiveRole),
-        ),
+        items: section.items
+          .map((item) => ({
+            ...item,
+            items: item.items.filter((sub) =>
+              canAccessPath(sub.url, effectiveRole),
+            ),
+          }))
+          .filter((item, index) =>
+            section.items[index].items.length
+              ? item.items.length > 0
+              : canAccessPath(item.url, effectiveRole),
+          ),
       })).filter((section) => section.items.length > 0),
     [effectiveRole],
   );

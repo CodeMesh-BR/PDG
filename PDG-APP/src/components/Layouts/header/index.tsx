@@ -14,8 +14,11 @@ export function Header({ hideSidebarToggle = false }: { hideSidebarToggle?: bool
     "/companies": "Companies",
     "/companies/[id]/edit": "Companies",
     "/departments": "Departments",
-    "/employees": "Employees",
-    "/employees/[id]/edit": "Employees",
+    "/users": "Users",
+    "/employees/[id]/edit": "Users",
+    "/clients/[id]/edit": "Users",
+    "/services-report": "Services Report",
+    "/client-report": "Client Report",
     "/services-catalog": "Services Catalog",
     "/services/[id]/edit": "Services",
     "/start-service": "Start Service",
@@ -33,6 +36,10 @@ export function Header({ hideSidebarToggle = false }: { hideSidebarToggle?: bool
 
     if (pathname.match(/^\/employees\/[^/]+\/edit$/)) {
       return pageTitles["/employees/[id]/edit"];
+    }
+
+    if (pathname.match(/^\/clients\/[^/]+\/edit$/)) {
+      return pageTitles["/clients/[id]/edit"];
     }
 
     if (pathname.match(/^\/services-catalog\/[^/]+\/edit$/)) {

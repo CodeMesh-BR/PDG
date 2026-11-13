@@ -219,4 +219,93 @@ class RolePermissionsTest extends TestCase
         sort($ids);
         $this->assertSame([$first->id, $second->id], $ids);
     }
+
+    /* -------------------------------------------------
+       4. Checkpoint admin only reads the services report
+          for the companies linked to it
+    --------------------------------------------------*/
+
+    public function test_checkpoint_admin_report_is_limited_to_linked_companies(): void
+    {
+        [$linkedA, $serviceA] = $this->makeCompanyWithService();
+        [$linkedB, $serviceB] = $this->makeCompanyWithService();
+        [$other, $serviceOther] = $this->makeCompanyWithService();
+
+        $detailer = $this->makeUser('detailer');
+        $this->makeLog($detailer, $linkedA, $serviceA);
+        $this->makeLog($detailer, $linkedB, $serviceB);
+        $this->makeLog($detailer, $other, $serviceOther);
+
+        $checkpoint = $this->makeUser('checkpoint_admin');
+        $checkpoint->companies()->sync([$linkedA->id, $linkedB->id]);
+
+        Sanctum::actingAs($checkpoint);
+
+        $report = $this->getJson('/api/reports/services');
+        $report->assertOk();
+        $report->assertJsonPath('can_see_costs', false);
+        $this->assertArrayNotHasKey('total_cost_amount', $report->json('grand_totals'));
+
+        $ids = array_unique(array_column($report->json('data'), 'company_id'));
+        sort($ids);
+        $this->assertSame([$linkedA->id, $linkedB->id], array_values($ids));
+
+        $summary = $this->getJson('/api/reports/services/summary');
+        $summary->assertOk();
+        $this->assertCount(2, $summary->json('totals_by_company'));
+
+        $this->getJson("/api/reports/services?company_id={$other->id}")->assertForbidden();
+        $this->getJson("/api/reports/services/summary?company_id={$other->id}")->assertForbidden();
+    }
+
+    public function test_checkpoint_admin_cannot_reach_other_endpoints(): void
+    {
+        $checkpoint = $this->makeUser('checkpoint_admin');
+        [$company] = $this->makeCompanyWithService();
+        $checkpoint->companies()->sync([$company->id]);
+
+        Sanctum::actingAs($checkpoint);
+
+        $this->getJson('/api/users')->assertForbidden();
+        $this->getJson('/api/companies')->assertForbidden();
+        $this->getJson('/api/service-logs')->assertForbidden();
+        $this->getJson('/api/dashboard/overview')->assertForbidden();
+        $this->getJson('/api/reports/client')->assertForbidden();
+    }
+
+    public function test_client_still_cannot_read_services_report(): void
+    {
+        $client = $this->makeUser('client');
+        [$company] = $this->makeCompanyWithService();
+        $client->companies()->sync([$company->id]);
+
+        Sanctum::actingAs($client);
+
+        $this->getJson('/api/reports/services')->assertForbidden();
+        $this->getJson('/api/reports/client')->assertOk();
+    }
+
+    public function test_checkpoint_admin_requires_at_least_one_company(): void
+    {
+        Sanctum::actingAs($this->makeUser('admin'));
+
+        $this->postJson('/api/users', [
+            'display_name' => 'Checkpoint',
+            'full_name'    => 'Checkpoint User',
+            'email'        => 'checkpoint@example.com',
+            'password'     => 'Secret123',
+            'role'         => 'checkpoint_admin',
+        ])->assertStatus(422)->assertJsonValidationErrors('company_ids');
+
+        [$company] = $this->makeCompanyWithService();
+
+        $this->postJson('/api/users', [
+            'display_name' => 'Checkpoint',
+            'full_name'    => 'Checkpoint User',
+            'email'        => 'checkpoint@example.com',
+            'password'     => 'Secret123',
+            'role'         => 'checkpoint_admin',
+            'company_ids'  => [$company->id],
+        ])->assertCreated();
+    }
 }

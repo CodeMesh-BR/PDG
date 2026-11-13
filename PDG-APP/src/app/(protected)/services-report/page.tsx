@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 import {
   fetchCompanies,
+  fetchMyCompanies,
   fetchReportServices,
   fetchReportSummary,
   fetchUsers,
@@ -59,15 +60,24 @@ export default function ServicesReportPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [showCosts, setShowCosts] = useState(true);
+  /** checkpoint users cannot list employees, so the filter is hidden for them */
+  const [isCheckpoint, setIsCheckpoint] = useState(false);
   const [visibleDetailColumns, setVisibleDetailColumns] = useState<Set<string>>(
     () => defaultVisibleDetailedKeys(true),
   );
 
   useEffect(() => {
     setMounted(true);
-    const canCosts = canSeeCosts(getStoredRole());
+    const role = getStoredRole();
+    const canCosts = canSeeCosts(role);
     setShowCosts(canCosts);
     setVisibleDetailColumns(defaultVisibleDetailedKeys(canCosts));
+
+    if (role === "checkpoint_admin") {
+      setIsCheckpoint(true);
+      fetchMyCompanies().then(setCompanies).catch(() => setCompanies([]));
+      return;
+    }
 
     fetchUsers().then(setUsers).catch(() => setUsers([]));
     fetchCompanies().then(setCompanies).catch(() => setCompanies([]));
@@ -238,26 +248,28 @@ export default function ServicesReportPage() {
         </h2>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <div>
-            <label className={labelClass}>Employee</label>
-            <select
-              className={inputClass}
-              value={filters.user_id ?? ""}
-              onChange={(e) =>
-                setFilters((f) => ({
-                  ...f,
-                  user_id: e.target.value ? Number(e.target.value) : undefined,
-                }))
-              }
-            >
-              <option value="">All employees</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.display_name ?? u.full_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!isCheckpoint && (
+            <div>
+              <label className={labelClass}>Employee</label>
+              <select
+                className={inputClass}
+                value={filters.user_id ?? ""}
+                onChange={(e) =>
+                  setFilters((f) => ({
+                    ...f,
+                    user_id: e.target.value ? Number(e.target.value) : undefined,
+                  }))
+                }
+              >
+                <option value="">All employees</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.display_name ?? u.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className={labelClass}>Company</label>

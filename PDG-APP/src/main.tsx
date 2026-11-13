@@ -13,9 +13,8 @@ import DashboardPage from "@/app/(protected)/(home)/page";
 import CompaniesPage from "@/app/(protected)/companies/page";
 import EditCompanyPage from "@/app/(protected)/companies/[id]/edit/page";
 import DepartmentsPage from "@/app/(protected)/departments/page";
-import EmployeesPage from "@/app/(protected)/employees/page";
+import UsersPage from "@/app/(protected)/users/page";
 import EditEmployeePage from "@/app/(protected)/employees/[id]/edit/page";
-import ClientsPage from "@/app/(protected)/clients/page";
 import EditClientPage from "@/app/(protected)/clients/[id]/edit/page";
 import ProfilePage from "@/app/(protected)/profile/page";
 import ServicesCatalogPage from "@/app/(protected)/services-catalog/page";
@@ -42,9 +41,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/companies" element={<CompaniesPage />} />
               <Route path="/companies/:id/edit" element={<EditCompanyPage />} />
               <Route path="/departments" element={<DepartmentsPage />} />
-              <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/employees" element={<Navigate to="/users" replace />} />
               <Route path="/employees/:id/edit" element={<EditEmployeePage />} />
-              <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/clients" element={<Navigate to="/users" replace />} />
               <Route path="/clients/:id/edit" element={<EditClientPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/services-catalog" element={<ServicesCatalogPage />} />

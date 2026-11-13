@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { COMPANY_SCOPED_USER_ROLES } from "@/lib/permissions";
 
 export interface EmployeeListItem {
   id: number;
@@ -36,8 +37,11 @@ export function useEmployees() {
       if (!res.ok) throw new Error(`Failed to fetch users: ${res.statusText}`);
       const data = await res.json();
 
-      // Clients get their own registration screen — keep them out of Employees.
-      const staff = (data.data || []).filter((u: EmployeeListItem) => u.role !== "client");
+      // Company-scoped users (clients, checkpoints) are listed in their own tabs.
+      const scoped: readonly string[] = COMPANY_SCOPED_USER_ROLES;
+      const staff = (data.data || []).filter(
+        (u: EmployeeListItem) => !scoped.includes(u.role),
+      );
       setUsers(staff);
       setTotal(staff.length);
     } catch (err: any) {

@@ -163,6 +163,14 @@ export async function fetchUsers() {
   return data.data ?? [];
 }
 
+/** Companies linked to the logged-in user (company-scoped roles only). */
+export async function fetchMyCompanies() {
+  const res = await fetch(`${API_BASE_URL}/auth/me`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Failed to load companies (${res.status})`);
+  const data = await res.json();
+  return data.data?.companies ?? [];
+}
+
 export async function fetchCompanies() {
   const res = await fetch(`${API_BASE_URL}/companies`, {
     headers: authHeaders(),

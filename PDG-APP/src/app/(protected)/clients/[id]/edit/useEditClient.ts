@@ -114,7 +114,7 @@ export function useEditClient() {
       }
 
       setSuccess("Client updated successfully!");
-      navigate("/clients");
+      navigate("/users");
     } catch (err: any) {
       setError(err.message);
     } finally {

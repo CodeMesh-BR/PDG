@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
+import type { CompanyScopedUserRole } from "@/lib/permissions";
 
 export interface ClientListItem {
   id: number;
@@ -13,7 +14,7 @@ export interface ClientListItem {
   companies?: { id: number; name: string; display_name?: string }[];
 }
 
-export function useClients() {
+export function useClients(role: CompanyScopedUserRole = "client") {
   const [clients, setClients] = useState<ClientListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,7 @@ export function useClients() {
       const data = await res.json();
 
       const onlyClients = (data.data || []).filter(
-        (u: ClientListItem) => u.role === "client",
+        (u: ClientListItem) => u.role === role,
       );
       setClients(onlyClients);
       setTotal(onlyClients.length);
@@ -50,7 +51,7 @@ export function useClients() {
 
   useEffect(() => {
     fetchClients();
-  }, []);
+  }, [role]);
 
   return { clients, total, loading, error, refresh: fetchClients };
 }

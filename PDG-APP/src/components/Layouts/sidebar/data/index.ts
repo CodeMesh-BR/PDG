@@ -9,15 +9,13 @@ import {
   Users,
   Car,
   FileText,
-  FileSpreadsheet,
-  Contact,
 } from "lucide-react";
 
 type NavItem = {
   title: string;
   icon: ComponentType<LucideProps>;
   url: string;
-  items: { title: string; url: string }[]; // hoje fica sempre []
+  items: { title: string; url: string }[];
 };
 
 type NavSection = {
@@ -38,20 +36,16 @@ export const NAV_DATA: NavSection[] = [
         url: "/services-catalog",
         items: [],
       },
-      { title: "Employees", icon: Users, url: "/employees", items: [] },
-      { title: "Clients", icon: Contact, url: "/clients", items: [] },
+      { title: "Users", icon: Users, url: "/users", items: [] },
       { title: "Start Service", icon: Car, url: "/start-service", items: [] },
       {
-        title: "Services Report",
+        title: "Reports",
         icon: FileText,
         url: "/services-report",
-        items: [],
-      },
-      {
-        title: "Client Report",
-        icon: FileSpreadsheet,
-        url: "/client-report",
-        items: [],
+        items: [
+          { title: "Services Report", url: "/services-report" },
+          { title: "Client Report", url: "/client-report" },
+        ],
       },
     ],
   },

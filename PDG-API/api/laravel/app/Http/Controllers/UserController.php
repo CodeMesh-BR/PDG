@@ -63,10 +63,10 @@ class UserController extends Controller
             ? $request->array('company_ids')
             : $user->companies()->pluck('companies.id')->all();
 
-        if ($actor->isAdmin() && $nextRole === 'client' && empty($nextCompanyIds)) {
+        if ($actor->isAdmin() && User::roleRequiresCompanies($nextRole) && empty($nextCompanyIds)) {
             return response()->json([
                 'message' => 'The given data was invalid.',
-                'errors'  => ['company_ids' => ['Client users must be linked to at least one company.']],
+                'errors'  => ['company_ids' => ['Users of this type must be linked to at least one company.']],
             ], 422);
         }
 

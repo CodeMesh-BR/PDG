@@ -57,7 +57,13 @@ class User extends Authenticatable
 
     public function isRestrictedToCompanies(): bool
     {
-        return in_array($this->roleName(), ['detailer', 'client'], true);
+        return in_array($this->roleName(), ['detailer', 'client', 'checkpoint_admin'], true);
+    }
+
+    /** Roles that are useless without at least one linked company. */
+    public static function roleRequiresCompanies(?string $role): bool
+    {
+        return in_array(strtolower(trim((string) $role)), ['client', 'checkpoint_admin'], true);
     }
 
     public function canManageAllServiceLogs(): bool
@@ -67,7 +73,7 @@ class User extends Authenticatable
 
     public function canSeeCosts(): bool
     {
-        return !in_array($this->roleName(), ['supervisor', 'client'], true);
+        return !in_array($this->roleName(), ['supervisor', 'client', 'checkpoint_admin'], true);
     }
 
     /**

@@ -23,15 +23,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
 
-    // Client-facing report (the only report endpoint the `client` role may call)
-    Route::get('/reports/client', [ClientReportController::class, 'index']);
+    // `checkpoint_admin` only reads the services report for its linked companies.
+    Route::middleware('deny-roles:checkpoint_admin')->group(function () {
+        // Client-facing report (the only report endpoint the `client` role may call)
+        Route::get('/reports/client', [ClientReportController::class, 'index']);
 
-    // Dashboard (implicitly company-scoped for every role, including `client`)
-    Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
-    Route::get('/dashboard/today-by-company', [DashboardController::class, 'todayByCompany']);
+        // Dashboard (implicitly company-scoped for every role, including `client`)
+        Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+        Route::get('/dashboard/today-by-company', [DashboardController::class, 'todayByCompany']);
+    });
 
-    // Everything below is off-limits to the `client` role.
-    Route::middleware('not-client')->group(function () {
+    // Reports (staff-facing — exposes employee names; company-scoped for `checkpoint_admin`)
+    Route::middleware('deny-roles:client')->group(function () {
+        Route::get('/reports/services', [ReportController::class, 'services']);
+        Route::get('/reports/services/summary', [ReportController::class, 'servicesSummary']);
+    });
+
+    // Everything below is off-limits to the `client` and `checkpoint_admin` roles.
+    Route::middleware('deny-roles:client,checkpoint_admin')->group(function () {
         // Users
         Route::post('/users', [UserRegistrationController::class, 'store']);
         Route::get('/users', [UserController::class, 'index']);
@@ -71,9 +80,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/service-logs/{serviceLog}',  [ServiceLogController::class, 'show']);
         Route::match(['put', 'patch'], '/service-logs/{serviceLog}',  [ServiceLogController::class, 'update']);
         Route::delete('/service-logs/{serviceLog}',  [ServiceLogController::class, 'destroy']);
-
-        // Reports (staff-facing — exposes employee names and costs)
-        Route::get('/reports/services', [ReportController::class, 'services']);
-        Route::get('/reports/services/summary', [ReportController::class, 'servicesSummary']);
     });
 });
