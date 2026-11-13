@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui-elements/button";
 import { FormAlert } from "@/components/FormAlerts/FormAlert";
 import { useEditClient } from "./useEditClient";
+import { ROLE_LABELS } from "@/lib/permissions";
 
 export default function EditClientPage() {
   const {
@@ -34,7 +35,9 @@ export default function EditClientPage() {
 
   return (
     <div className="mx-auto max-w-xl p-6">
-      <h1 className="mb-6 text-2xl font-semibold">Edit Client</h1>
+      <h1 className="mb-6 text-2xl font-semibold">
+        Edit {ROLE_LABELS[client.role ?? "client"] ?? "Client"}
+      </h1>
 
       {error && <FormAlert type="error" message={error} />}
       {success && <FormAlert type="success" message={success} />}

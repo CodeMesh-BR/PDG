@@ -11,6 +11,7 @@ export interface ClientRecord {
   display_name: string;
   full_name: string;
   email: string;
+  role?: string;
   address?: string;
   phone?: string;
   companies?: { id: number; name: string; display_name?: string }[];
@@ -114,7 +115,9 @@ export function useEditClient() {
       }
 
       setSuccess("Client updated successfully!");
-      navigate("/users");
+      navigate(
+        client.role === "checkpoint_admin" ? "/admin-checkpoints" : "/clients",
+      );
     } catch (err: any) {
       setError(err.message);
     } finally {

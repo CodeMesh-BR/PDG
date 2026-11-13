@@ -36,7 +36,16 @@ export const NAV_DATA: NavSection[] = [
         url: "/services-catalog",
         items: [],
       },
-      { title: "Users", icon: Users, url: "/users", items: [] },
+      {
+        title: "Users",
+        icon: Users,
+        url: "/employees",
+        items: [
+          { title: "Employees", url: "/employees" },
+          { title: "Clients", url: "/clients" },
+          { title: "Admin Checkpoint", url: "/admin-checkpoints" },
+        ],
+      },
       { title: "Start Service", icon: Car, url: "/start-service", items: [] },
       {
         title: "Reports",
