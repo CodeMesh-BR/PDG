@@ -93,7 +93,11 @@ export function Sidebar({ role }: { role?: Role | null }) {
               onClick={() => isMobile && toggleSidebar()}
               className="px-0 py-2.5 min-[850px]:py-0"
             >
-              <Logo />
+              <Logo
+                variant={
+                  effectiveRole === "checkpoint_admin" ? "checkpoint" : "pdg"
+                }
+              />
             </Link>
 
             {isMobile && (

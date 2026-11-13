@@ -5,6 +5,7 @@ import type { ClientReportRow } from "./api";
 import { COLUMNS, money, type Column } from "./columns";
 
 export { loadLogoDataUrl } from "../services-report/reportPdf";
+import { GST_LABEL, gstBreakdown } from "@/lib/gst";
 
 const BRAND: [number, number, number] = [87, 80, 241];
 const INK: [number, number, number] = [17, 25, 40];
@@ -130,16 +131,22 @@ export function buildClientReportPdf({
   const y = drawHeader(pdf, periodLabel, storeLabel, logo);
 
   const totalPrice = rows.reduce((sum, r) => sum + Number(r.price ?? 0), 0);
-  const footCells = COLUMNS.map((col) =>
-    col.key === "price" ? money(totalPrice) : "",
-  );
-  footCells[0] = "TOTAL";
+  const gst = gstBreakdown(totalPrice);
+  const footRow = (label: string, amount: number) => {
+    const cells = COLUMNS.map((col) => (col.key === "price" ? money(amount) : ""));
+    cells[0] = label;
+    return cells;
+  };
 
   autoTable(pdf, {
     startY: y,
     head: [COLUMNS.map((c) => c.header)],
     body: rows.map((row) => COLUMNS.map((c) => c.value(row))),
-    foot: [footCells],
+    foot: [
+      footRow("SUBTOTAL", gst.subtotal),
+      footRow(GST_LABEL, gst.gst),
+      footRow("TOTAL (INC. GST)", gst.total),
+    ],
     margin: { left: MARGIN, right: MARGIN, bottom: 50 },
     theme: "plain",
     styles: {

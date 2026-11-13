@@ -13,6 +13,7 @@ import {
   type Column,
   type ReportMode,
 } from "./columns";
+import { GST_LABEL, gstBreakdown } from "@/lib/gst";
 
 /* ---------------------------------------------------------------- theme */
 
@@ -25,6 +26,8 @@ const ZEBRA: [number, number, number] = [249, 250, 251]; // gray-1
 const MARGIN = 40;
 const LOGO_W = 116;
 const LOGO_H = 49; // 1042x441 ≈ 2.36:1
+const CHECKPOINT_LOGO_W = 100;
+const CHECKPOINT_LOGO_H = 61; // 640x393 ≈ 1.63:1
 
 /* ---------------------------------------------------------------- logo */
 
@@ -32,9 +35,11 @@ const LOGO_H = 49; // 1042x441 ≈ 2.36:1
  * O logo vive em `public/`, mas o app é servido sob `basename="/PDG-DOM"`.
  * Sem `BASE_URL` o fetch dá 404; e jsPDF não aceita `blob:` URL — só data URL.
  */
-export async function loadLogoDataUrl(): Promise<string | null> {
+export async function loadLogoDataUrl(
+  file = "logo-pdg.png",
+): Promise<string | null> {
   try {
-    const res = await fetch(`${import.meta.env.BASE_URL}logo-pdg.png`);
+    const res = await fetch(`${import.meta.env.BASE_URL}${file}`);
     if (!res.ok) return null;
 
     const blob = await res.blob();
@@ -67,10 +72,19 @@ type BuildArgs = {
   showCosts: boolean;
   meta: PdfMeta;
   logo: string | null;
+  /** Checkpoint accounts lead with their own brand; PDG is drawn smaller. */
+  checkpointLogo?: string | null;
   visibleDetailColumns?: Set<string>;
 };
 
 /* ---------------------------------------------------------------- helpers */
+
+/** Footer row carrying a single amount under the "total" column. */
+function gstFootRow(columns: { key: string }[], label: string, amount: number): string[] {
+  const cells = columns.map((col) => (col.key === "total" ? money(amount) : ""));
+  cells[0] = label;
+  return cells;
+}
 
 const alignFor = (align: Align) => align;
 
@@ -117,7 +131,12 @@ function tableTheme(columns: Column[], availableWidth: number) {
 }
 
 /** Cabeçalho do documento — só na primeira página. */
-function drawHeader(pdf: jsPDF, meta: PdfMeta, logo: string | null): number {
+function drawHeader(
+  pdf: jsPDF,
+  meta: PdfMeta,
+  logo: string | null,
+  checkpointLogo?: string | null,
+): number {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const right = pageWidth - MARGIN;
 
@@ -127,7 +146,23 @@ function drawHeader(pdf: jsPDF, meta: PdfMeta, logo: string | null): number {
 
   let logoBottom = 30;
 
-  if (logo) {
+  if (checkpointLogo) {
+    pdf.addImage(checkpointLogo, "PNG", MARGIN, 20, CHECKPOINT_LOGO_W, CHECKPOINT_LOGO_H);
+    logoBottom = 20 + CHECKPOINT_LOGO_H;
+
+    if (logo) {
+      const smallW = LOGO_W * 0.5;
+      const smallH = LOGO_H * 0.5;
+      pdf.addImage(
+        logo,
+        "PNG",
+        MARGIN + CHECKPOINT_LOGO_W + 12,
+        20 + CHECKPOINT_LOGO_H - smallH,
+        smallW,
+        smallH,
+      );
+    }
+  } else if (logo) {
     pdf.addImage(logo, "PNG", MARGIN, 26, LOGO_W, LOGO_H);
     logoBottom = 26 + LOGO_H;
   }
@@ -392,6 +427,7 @@ export function buildReportPdf({
   showCosts,
   meta,
   logo,
+  checkpointLogo,
   visibleDetailColumns,
 }: BuildArgs): jsPDF {
   const detailed = meta.mode === "detailed";
@@ -400,7 +436,7 @@ export function buildReportPdf({
   const pageWidth = pdf.internal.pageSize.getWidth();
   const available = pageWidth - MARGIN * 2;
 
-  let y = drawHeader(pdf, meta, logo);
+  let y = drawHeader(pdf, meta, logo, checkpointLogo);
 
   if (detailed) {
     /* uma seção por empresa, cada uma começando em página nova */
@@ -431,12 +467,17 @@ export function buildReportPdf({
         return "";
       });
       footCells[0] = "Subtotal";
+      const groupGst = gstBreakdown(subtotal.amount);
 
       autoTable(pdf, {
         startY: y,
         head: [columns.map((c) => c.header)],
         body: group.rows.map((row) => columns.map((c) => c.value(row))),
-        foot: [footCells],
+        foot: [
+          footCells,
+          gstFootRow(columns, GST_LABEL, groupGst.gst),
+          gstFootRow(columns, "Total (inc. GST)", groupGst.total),
+        ],
         margin: { left: MARGIN, right: MARGIN, bottom: 50 },
         ...styles,
       });
@@ -506,13 +547,18 @@ export function buildReportPdf({
       if (col.key === "cost") return money(grandTotals.total_cost_amount);
       return "";
     });
-    footCells[0] = "TOTAL";
+    footCells[0] = "SUBTOTAL";
+    const grandGst = gstBreakdown(grandTotals.total_amount);
 
     autoTable(pdf, {
       startY: y,
       head: [columns.map((c) => c.header)],
       body: rows.map((row) => columns.map((c) => c.value(row))),
-      foot: [footCells],
+      foot: [
+        footCells,
+        gstFootRow(columns, GST_LABEL, grandGst.gst),
+        gstFootRow(columns, "TOTAL (INC. GST)", grandGst.total),
+      ],
       margin: { left: MARGIN, right: MARGIN, bottom: 50 },
       ...styles,
     });

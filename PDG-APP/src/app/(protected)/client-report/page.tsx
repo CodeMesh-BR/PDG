@@ -14,6 +14,7 @@ import {
 } from "./api";
 import { COLUMNS, money } from "./columns";
 import { buildClientReportPdf, loadLogoDataUrl } from "./reportPdf";
+import { GST_LABEL, gstBreakdown } from "@/lib/gst";
 
 function labelForPeriod(filters: ClientReportFilters) {
   if (!filters.date_from && !filters.date_to) return "All time";
@@ -62,6 +63,7 @@ export default function ClientReportPage() {
     () => (rows ?? []).reduce((sum, r) => sum + Number(r.price ?? 0), 0),
     [rows],
   );
+  const gst = gstBreakdown(totalPrice);
 
   const storeLabel = useMemo(() => {
     if (!appliedFilters.company_id) return "All stores";
@@ -264,8 +266,9 @@ export default function ClientReportPage() {
             </div>
 
             <p className="mt-4 text-xs text-dark-5 dark:text-dark-6">
-              Period: {labelForPeriod(appliedFilters)} · {storeLabel} · Total:{" "}
-              {money(totalPrice)}
+              Period: {labelForPeriod(appliedFilters)} · {storeLabel} ·
+              Subtotal: {money(gst.subtotal)} · {GST_LABEL}: {money(gst.gst)} ·
+              Total (inc. GST): {money(gst.total)}
             </p>
 
             {truncated && (
@@ -341,11 +344,32 @@ export default function ClientReportPage() {
                             col.align === "right" && "text-right tabular-nums",
                           )}
                         >
-                          {index === 0 && "TOTAL"}
-                          {col.key === "price" && money(totalPrice)}
+                          {index === 0 && "SUBTOTAL"}
+                          {col.key === "price" && money(gst.subtotal)}
                         </td>
                       ))}
                     </tr>
+                    {(
+                      [
+                        [GST_LABEL, gst.gst],
+                        ["TOTAL (INC. GST)", gst.total],
+                      ] as const
+                    ).map(([label, value]) => (
+                      <tr key={label} className="bg-primary/10 font-semibold">
+                        {COLUMNS.map((col, index) => (
+                          <td
+                            key={col.key}
+                            className={cn(
+                              "px-4 py-2 text-dark dark:text-white",
+                              col.align === "right" && "text-right tabular-nums",
+                            )}
+                          >
+                            {index === 0 && label}
+                            {col.key === "price" && money(value)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
                   </tfoot>
                 )}
               </table>

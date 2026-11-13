@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui-elements/button";
 import { canSeeCosts, getStoredRole } from "@/lib/permissions";
+import { GST_LABEL, gstBreakdown } from "@/lib/gst";
 import { cn } from "@/lib/utils";
 
 import {
@@ -145,6 +146,7 @@ export default function ServicesReportPage() {
 
   const rows = report?.data ?? [];
   const totals = report?.grand_totals;
+  const gst = gstBreakdown(totals?.total_amount);
 
   const pdfMeta: PdfMeta = useMemo(
     () => ({
@@ -199,7 +201,10 @@ export default function ServicesReportPage() {
         setSummary(breakdowns);
       }
 
-      const logo = await loadLogoDataUrl();
+      const [logo, checkpointLogo] = await Promise.all([
+        loadLogoDataUrl(),
+        isCheckpoint ? loadLogoDataUrl("logo-checkpoint.png") : null,
+      ]);
 
       const pdf = buildReportPdf({
         rows,
@@ -208,6 +213,7 @@ export default function ServicesReportPage() {
         showCosts,
         meta: pdfMeta,
         logo,
+        checkpointLogo,
         visibleDetailColumns: mode === "detailed" ? visibleDetailColumns : undefined,
       });
 
@@ -423,17 +429,15 @@ export default function ServicesReportPage() {
             </div>
 
             {/* KPIs */}
-            <dl className="mt-6 grid gap-4 border-t border-stroke pt-5 dark:border-stroke-dark sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-6 grid gap-4 border-t border-stroke pt-5 dark:border-stroke-dark sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <Stat label="Entries" value={String(rows.length)} />
               <Stat
                 label="Total quantity"
                 value={String(totals?.total_quantity ?? 0)}
               />
-              <Stat
-                label="Total revenue"
-                value={money(totals?.total_amount)}
-                accent
-              />
+              <Stat label="Subtotal" value={money(gst.subtotal)} />
+              <Stat label={GST_LABEL} value={money(gst.gst)} />
+              <Stat label="Total (inc. GST)" value={money(gst.total)} accent />
               {showCosts && (
                 <Stat label="Total cost" value={money(totals?.total_cost_amount)} />
               )}
@@ -528,7 +532,7 @@ export default function ServicesReportPage() {
                             col.align === "center" && "text-center",
                           )}
                         >
-                          {index === 0 && "TOTAL"}
+                          {index === 0 && "SUBTOTAL"}
                           {col.key === "quantity" &&
                             String(totals?.total_quantity ?? 0)}
                           {col.key === "total" && money(totals?.total_amount)}
@@ -542,6 +546,27 @@ export default function ServicesReportPage() {
                         </td>
                       ))}
                     </tr>
+                    {(
+                      [
+                        [GST_LABEL, gst.gst],
+                        ["TOTAL (INC. GST)", gst.total],
+                      ] as const
+                    ).map(([label, value]) => (
+                      <tr key={label} className="bg-primary/10 font-semibold">
+                        {columns.map((col, index) => (
+                          <td
+                            key={col.key}
+                            className={cn(
+                              "px-4 py-2 text-dark dark:text-white",
+                              col.align === "right" && "text-right tabular-nums",
+                            )}
+                          >
+                            {index === 0 && label}
+                            {col.key === "total" && money(value)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
                   </tfoot>
                 )}
               </table>
