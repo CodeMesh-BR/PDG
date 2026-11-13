@@ -120,6 +120,7 @@ function tableTheme(columns: Column[], availableWidth: number) {
       lineWidth: 0,
     },
     alternateRowStyles: { fillColor: ZEBRA },
+    showFoot: "lastPage" as const,
     footStyles: {
       fillColor: [237, 236, 254] as [number, number, number],
       textColor: INK,
@@ -361,6 +362,47 @@ function drawBucketTables(
   return y;
 }
 
+/** Final block of the detailed report: subtotal, GST and total. */
+function drawGrandTotals(pdf: jsPDF, subtotal: number, startY: number) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const width = 240;
+  const gst = gstBreakdown(subtotal);
+
+  let y = startY;
+  if (y > pageHeight - 140) {
+    pdf.addPage();
+    y = MARGIN + 10;
+  }
+
+  autoTable(pdf, {
+    startY: y,
+    body: [
+      ["Subtotal", money(gst.subtotal)],
+      [GST_LABEL, money(gst.gst)],
+      ["TOTAL (INC. GST)", money(gst.total)],
+    ],
+    margin: { left: pageWidth - MARGIN - width, right: MARGIN, bottom: 50 },
+    tableWidth: width,
+    theme: "plain",
+    styles: {
+      font: "helvetica",
+      fontSize: 9,
+      cellPadding: { top: 6, right: 6, bottom: 6, left: 6 },
+      textColor: INK,
+      lineColor: RULE,
+      lineWidth: 0.5,
+    },
+    columnStyles: { 1: { halign: "right" } },
+    didParseCell: (data) => {
+      if (data.row.index === 2) {
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fillColor = [237, 236, 254];
+      }
+    },
+  });
+}
+
 function drawKeyFigures(
   pdf: jsPDF,
   summary: ServicesSummary,
@@ -467,17 +509,12 @@ export function buildReportPdf({
         return "";
       });
       footCells[0] = "Subtotal";
-      const groupGst = gstBreakdown(subtotal.amount);
 
       autoTable(pdf, {
         startY: y,
         head: [columns.map((c) => c.header)],
         body: group.rows.map((row) => columns.map((c) => c.value(row))),
-        foot: [
-          footCells,
-          gstFootRow(columns, GST_LABEL, groupGst.gst),
-          gstFootRow(columns, "Total (inc. GST)", groupGst.total),
-        ],
+        foot: [footCells],
         margin: { left: MARGIN, right: MARGIN, bottom: 50 },
         ...styles,
       });
@@ -536,6 +573,8 @@ export function buildReportPdf({
         y,
       );
     }
+
+    drawGrandTotals(pdf, grandTotals.total_amount, y);
   } else {
     /* tabela contínua única */
     const columns = getColumns("simple", showCosts, true);

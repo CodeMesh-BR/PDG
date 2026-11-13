@@ -166,6 +166,7 @@ export function buildClientReportPdf({
       lineWidth: 0,
     },
     alternateRowStyles: { fillColor: ZEBRA },
+    showFoot: "lastPage",
     footStyles: {
       fillColor: [237, 236, 254],
       textColor: INK,
