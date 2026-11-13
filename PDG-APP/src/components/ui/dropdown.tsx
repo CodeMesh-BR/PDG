@@ -43,17 +43,20 @@ export function Dropdown({ children, isOpen, setIsOpen }: DropdownProps) {
   };
 
   useEffect(() => {
-    if (isOpen) {
-      triggerRef.current = document.activeElement as HTMLElement;
+    if (!isOpen) return;
 
-      document.body.style.pointerEvents = "none";
-    } else {
+    triggerRef.current = document.activeElement as HTMLElement;
+    document.body.style.pointerEvents = "none";
+
+    // Cleanup also runs on unmount (e.g. navigating away while open),
+    // otherwise the body would stay non-interactive.
+    return () => {
       document.body.style.removeProperty("pointer-events");
 
       setTimeout(() => {
         triggerRef.current?.focus();
       }, 0);
-    }
+    };
   }, [isOpen]);
 
   function handleClose() {
