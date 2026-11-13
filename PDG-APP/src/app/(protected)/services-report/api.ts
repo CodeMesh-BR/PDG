@@ -2,7 +2,7 @@ import { API_BASE_URL } from "@/lib/api";
 
 export type ReportFilters = {
   user_id?: number;
-  company_id?: number;
+  company_ids?: number[];
   plate?: string;
   date_from?: string;
   date_to?: string;
@@ -94,7 +94,11 @@ function toQueryString(params: ReportFilters) {
   const qs = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") qs.append(key, String(value));
+    if (Array.isArray(value)) {
+      value.forEach((item) => qs.append(`${key}[]`, String(item)));
+    } else if (value !== undefined && value !== "") {
+      qs.append(key, String(value));
+    }
   });
 
   return qs.toString();

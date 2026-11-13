@@ -12,6 +12,8 @@ class ReportController extends Controller
 
     private const FILTER_RULES = [
         'company_id' => ['sometimes', 'integer', 'exists:companies,id'],
+        'company_ids'   => ['sometimes', 'array', 'max:200'],
+        'company_ids.*' => ['integer', 'distinct', 'exists:companies,id'],
         'user_id'    => ['sometimes', 'integer', 'exists:users,id'],
         'plate'      => ['sometimes', 'string', 'max:20'],
         'date_from'  => ['sometimes', 'date_format:Y-m-d'],
@@ -28,8 +30,17 @@ class ReportController extends Controller
     {
         $user = $request->user();
 
-        if (!empty($validated['company_id']) && !$this->ensureCompanyAllowed($user, $validated['company_id'])) {
-            return null;
+        // `company_id` (single) is kept for backwards compatibility with `company_ids[]`.
+        $companyIds = array_map('intval', $validated['company_ids'] ?? []);
+        if (!empty($validated['company_id'])) {
+            $companyIds[] = (int) $validated['company_id'];
+        }
+        $companyIds = array_values(array_unique($companyIds));
+
+        foreach ($companyIds as $companyId) {
+            if (!$this->ensureCompanyAllowed($user, $companyId)) {
+                return null;
+            }
         }
 
         // atalho: se mandou ?date=YYYY-MM-DD aplica nos dois
@@ -49,8 +60,8 @@ class ReportController extends Controller
 
         $this->applyCompanyRestriction($base, $user, 'service_logs.company_id');
 
-        if (!empty($validated['company_id'])) {
-            $base->where('service_logs.company_id', $validated['company_id']);
+        if (!empty($companyIds)) {
+            $base->whereIn('service_logs.company_id', $companyIds);
         }
 
         if (!empty($validated['user_id'])) {

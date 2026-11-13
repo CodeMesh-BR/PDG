@@ -16,6 +16,7 @@ import {
   type ServicesSummary,
 } from "./api";
 import { ColumnsMenu } from "./ColumnsMenu";
+import { CompanyMultiSelect, companyName } from "./CompanyMultiSelect";
 import {
   defaultVisibleDetailedKeys,
   getColumns,
@@ -152,10 +153,11 @@ export default function ServicesReportPage() {
     () => ({
       mode,
       periodLabel: labelForPeriod(appliedFilters),
-      companyLabel: appliedFilters.company_id
-        ? (companies.find((c) => c.id == appliedFilters.company_id)?.display_name ??
-          companies.find((c) => c.id == appliedFilters.company_id)?.name ??
-          "—")
+      companyLabel: appliedFilters.company_ids?.length
+        ? companies
+            .filter((c) => appliedFilters.company_ids!.includes(c.id))
+            .map(companyName)
+            .join(", ") || "—"
         : "All companies",
       employeeLabel: appliedFilters.user_id
         ? (users.find((u) => u.id == appliedFilters.user_id)?.display_name ??
@@ -278,26 +280,21 @@ export default function ServicesReportPage() {
           )}
 
           <div>
-            <label className={labelClass}>Company</label>
-            <select
+            <label id="report-company-label" className={labelClass}>
+              Companies
+            </label>
+            <CompanyMultiSelect
+              labelId="report-company-label"
               className={inputClass}
-              value={filters.company_id ?? ""}
-              onChange={(e) =>
+              companies={companies}
+              value={filters.company_ids ?? []}
+              onChange={(ids) =>
                 setFilters((f) => ({
                   ...f,
-                  company_id: e.target.value
-                    ? Number(e.target.value)
-                    : undefined,
+                  company_ids: ids.length ? ids : undefined,
                 }))
               }
-            >
-              <option value="">All companies</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.display_name ?? c.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>

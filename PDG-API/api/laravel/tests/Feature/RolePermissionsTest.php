@@ -256,6 +256,19 @@ class RolePermissionsTest extends TestCase
 
         $this->getJson("/api/reports/services?company_id={$other->id}")->assertForbidden();
         $this->getJson("/api/reports/services/summary?company_id={$other->id}")->assertForbidden();
+
+        // multi-company filter: every selected company must be allowed
+        $only = $this->getJson("/api/reports/services?company_ids[]={$linkedA->id}");
+        $only->assertOk();
+        $this->assertSame(
+            [$linkedA->id],
+            array_values(array_unique(array_column($only->json('data'), 'company_id'))),
+        );
+
+        $this->getJson("/api/reports/services?company_ids[]={$linkedA->id}&company_ids[]={$linkedB->id}")
+            ->assertOk();
+        $this->getJson("/api/reports/services?company_ids[]={$linkedA->id}&company_ids[]={$other->id}")
+            ->assertForbidden();
     }
 
     public function test_checkpoint_admin_cannot_reach_other_endpoints(): void
