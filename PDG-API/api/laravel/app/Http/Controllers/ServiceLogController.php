@@ -14,6 +14,9 @@ class ServiceLogController extends Controller
 {
     use RestrictsCompanyAccess;
 
+    /** Roles that can be credited with performing a service entry. */
+    private const SERVICE_PERFORMER_ROLES = ['admin', 'supervisor', 'detailer'];
+
     public function store(Request $request)
     {
         $user = $request->user();
@@ -184,6 +187,7 @@ class ServiceLogController extends Controller
             'date' => ['sometimes', 'date_format:Y-m-d'],
             'quantity' => ['sometimes', 'integer', 'min:1'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'user_id' => ['sometimes', 'integer', 'exists:users,id'],
         ]);
 
         $companyId = $validated['company_id'] ?? $serviceLog->company_id;
@@ -193,6 +197,32 @@ class ServiceLogController extends Controller
             return response()->json([
                 'message' => 'You are not allowed to log services for this company.',
             ], 403);
+        }
+
+        $assigneeId = null;
+
+        if (array_key_exists('user_id', $validated)) {
+            if (!$user->canManageAllServiceLogs()) {
+                return response()->json([
+                    'message' => 'Only an admin can change the employee of a service entry.',
+                ], 403);
+            }
+
+            $assignee = User::select(['id', 'role'])->findOrFail($validated['user_id']);
+
+            if (!in_array($assignee->roleName(), self::SERVICE_PERFORMER_ROLES, true)) {
+                return response()->json([
+                    'message' => 'The selected employee cannot perform services.',
+                ], 422);
+            }
+
+            if (!$this->ensureCompanyAllowed($assignee, $companyId)) {
+                return response()->json([
+                    'message' => 'The selected employee is not linked to this company.',
+                ], 422);
+            }
+
+            $assigneeId = $assignee->id;
         }
 
         $company = Company::with([
@@ -259,6 +289,10 @@ class ServiceLogController extends Controller
 
         if (array_key_exists('notes', $validated)) {
             $serviceLog->notes = $validated['notes'];
+        }
+
+        if ($assigneeId !== null) {
+            $serviceLog->user_id = $assigneeId;
         }
 
         $serviceLog->save();

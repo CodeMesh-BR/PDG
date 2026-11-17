@@ -237,4 +237,33 @@ class ServicesReportTest extends TestCase
         $this->getJson("/api/reports/services/summary?company_id={$otherCompany->id}")
             ->assertForbidden();
     }
+
+    public function test_identical_entries_are_listed_as_separate_rows_with_their_ids(): void
+    {
+        $duplicate = ServiceLog::create([
+            'user_id'           => $this->detailer->id,
+            'company_id'        => $this->company->id,
+            'service_id'        => $this->service->id,
+            'department_id'     => $this->department->id,
+            'car_plate'         => 'XYZ9876',
+            'vehicle_condition' => 'new',
+            'stock_number'      => 'STK-002',
+            'performed_at'      => '2026-01-11',
+            'quantity'          => 1,
+        ]);
+
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+
+        $response = $this->getJson('/api/reports/services');
+        $response->assertOk();
+
+        $rows = collect($response->json('data'));
+        $this->assertCount(3, $rows);
+        $this->assertCount(3, $rows->pluck('service_log_id')->unique());
+        $this->assertTrue($rows->pluck('service_log_id')->contains($duplicate->id));
+
+        // 2 * 100 + 1 * 100 + 1 * 100
+        $this->assertEquals(400, $response->json('grand_totals.total_amount'));
+        $this->assertEquals(400, $rows->sum('total_amount'));
+    }
 }

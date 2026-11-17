@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui-elements/button";
-import { canSeeCosts, getStoredRole } from "@/lib/permissions";
+import {
+  canManageAllServiceLogs,
+  canSeeCosts,
+  getStoredRole,
+} from "@/lib/permissions";
 import { GST_LABEL, gstBreakdown } from "@/lib/gst";
 import { cn } from "@/lib/utils";
 
@@ -12,11 +16,13 @@ import {
   fetchReportSummary,
   fetchUsers,
   type ReportFilters,
+  type ReportRow,
   type ServicesReport,
   type ServicesSummary,
 } from "./api";
 import { ColumnsMenu } from "./ColumnsMenu";
 import { CompanyMultiSelect, companyName } from "./CompanyMultiSelect";
+import { EditServiceLogModal } from "./EditServiceLogModal";
 import {
   defaultVisibleDetailedKeys,
   getColumns,
@@ -64,6 +70,9 @@ export default function ServicesReportPage() {
   const [showCosts, setShowCosts] = useState(true);
   /** checkpoint users cannot list employees, so the filter is hidden for them */
   const [isCheckpoint, setIsCheckpoint] = useState(false);
+  /** only the admin edits service entries from the report */
+  const [canEdit, setCanEdit] = useState(false);
+  const [editingRow, setEditingRow] = useState<ReportRow | null>(null);
   const [visibleDetailColumns, setVisibleDetailColumns] = useState<Set<string>>(
     () => defaultVisibleDetailedKeys(true),
   );
@@ -73,6 +82,7 @@ export default function ServicesReportPage() {
     const role = getStoredRole();
     const canCosts = canSeeCosts(role);
     setShowCosts(canCosts);
+    setCanEdit(canManageAllServiceLogs(role));
     setVisibleDetailColumns(defaultVisibleDetailedKeys(canCosts));
 
     if (role === "checkpoint_admin") {
@@ -106,18 +116,18 @@ export default function ServicesReportPage() {
     }
   }, []);
 
-  const generateReport = async () => {
+  const runReport = async (target: ReportFilters) => {
     setLoading(true);
     setError(null);
     setSummary(null);
     setSummaryRequested(false);
 
     try {
-      const data = await fetchReportServices(filters);
+      const data = await fetchReportServices(target);
       setReport(data);
-      setAppliedFilters(filters);
+      setAppliedFilters(target);
 
-      if (mode === "detailed") await loadSummary(filters);
+      if (mode === "detailed") await loadSummary(target);
     } catch (e: any) {
       setReport(null);
       setError(e?.message ?? "Failed to generate the report.");
@@ -125,6 +135,8 @@ export default function ServicesReportPage() {
       setLoading(false);
     }
   };
+
+  const generateReport = () => runReport(filters);
 
   // ao alternar para o modo detalhado com um relatório já na tela,
   // busca os agrupamentos correspondentes aos filtros aplicados
@@ -480,6 +492,11 @@ export default function ServicesReportPage() {
                         {col.header}
                       </th>
                     ))}
+                    {canEdit && (
+                      <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    )}
                   </tr>
                 </thead>
 
@@ -487,7 +504,7 @@ export default function ServicesReportPage() {
                   {rows.length === 0 && (
                     <tr>
                       <td
-                        colSpan={columns.length}
+                        colSpan={columns.length + (canEdit ? 1 : 0)}
                         className="px-4 py-10 text-center text-dark-5 dark:text-dark-6"
                       >
                         No service logs match these filters.
@@ -495,9 +512,9 @@ export default function ServicesReportPage() {
                     </tr>
                   )}
 
-                  {rows.map((row, index) => (
+                  {rows.map((row) => (
                     <tr
-                      key={index}
+                      key={row.service_log_id}
                       className="border-t border-stroke odd:bg-gray-1 hover:bg-primary/5 dark:border-stroke-dark dark:odd:bg-dark-2"
                     >
                       {columns.map((col) => (
@@ -513,6 +530,18 @@ export default function ServicesReportPage() {
                           {col.value(row)}
                         </td>
                       ))}
+                      {canEdit && (
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setEditingRow(row)}
+                            aria-label={`Edit entry ${row.car_plate ?? row.stock_number ?? row.service_log_id} on ${String(row.performed_at).slice(0, 10)}`}
+                            className="rounded-md border border-primary px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -542,6 +571,7 @@ export default function ServicesReportPage() {
                             )}
                         </td>
                       ))}
+                      {canEdit && <td />}
                     </tr>
                     {(
                       [
@@ -562,6 +592,7 @@ export default function ServicesReportPage() {
                             {col.key === "total" && money(value)}
                           </td>
                         ))}
+                        {canEdit && <td />}
                       </tr>
                     ))}
                   </tfoot>
@@ -570,6 +601,17 @@ export default function ServicesReportPage() {
             </div>
           </section>
         </>
+      )}
+
+      {canEdit && editingRow && (
+        <EditServiceLogModal
+          key={editingRow.service_log_id}
+          row={editingRow}
+          companies={companies}
+          users={users}
+          onClose={() => setEditingRow(null)}
+          onSaved={() => void runReport(appliedFilters)}
+        />
       )}
     </div>
   );

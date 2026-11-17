@@ -73,6 +73,69 @@ class RolePermissionsTest extends TestCase
         $this->assertSame('XYZ9876', $log->fresh()->car_plate);
     }
 
+    public function test_admin_can_reassign_a_log_to_another_employee(): void
+    {
+        [$company, $service] = $this->makeCompanyWithService();
+        $log = $this->makeLog($this->makeUser('detailer'), $company, $service);
+
+        $newDetailer = $this->makeUser('detailer');
+        $newDetailer->companies()->sync([$company->id]);
+        $supervisor = $this->makeUser('supervisor');
+
+        Sanctum::actingAs($this->makeUser('admin'));
+
+        $this->putJson("/api/service-logs/{$log->id}", ['user_id' => $newDetailer->id])
+            ->assertOk()
+            ->assertJsonPath('data.user_id', $newDetailer->id);
+
+        $this->putJson("/api/service-logs/{$log->id}", ['user_id' => $supervisor->id])
+            ->assertOk();
+
+        $this->assertSame($supervisor->id, $log->fresh()->user_id);
+    }
+
+    public function test_admin_cannot_reassign_a_log_to_an_invalid_employee(): void
+    {
+        [$company, $service] = $this->makeCompanyWithService();
+        $owner = $this->makeUser('detailer');
+        $log = $this->makeLog($owner, $company, $service);
+
+        $client = $this->makeUser('client');
+        $client->companies()->sync([$company->id]);
+        $unlinkedDetailer = $this->makeUser('detailer');
+
+        Sanctum::actingAs($this->makeUser('admin'));
+
+        $this->putJson("/api/service-logs/{$log->id}", ['user_id' => $client->id])
+            ->assertStatus(422);
+        $this->putJson("/api/service-logs/{$log->id}", ['user_id' => $unlinkedDetailer->id])
+            ->assertStatus(422);
+
+        $this->assertSame($owner->id, $log->fresh()->user_id);
+    }
+
+    public function test_only_admin_can_change_the_employee_of_a_log(): void
+    {
+        [$company, $service] = $this->makeCompanyWithService();
+        $detailer = $this->makeUser('detailer');
+        $detailer->companies()->sync([$company->id]);
+        $own = $this->makeLog($detailer, $company, $service);
+
+        $supervisor = $this->makeUser('supervisor');
+        $supervisorLog = $this->makeLog($supervisor, $company, $service);
+
+        Sanctum::actingAs($detailer);
+        $this->putJson("/api/service-logs/{$own->id}", ['user_id' => $supervisor->id])
+            ->assertForbidden();
+
+        Sanctum::actingAs($supervisor);
+        $this->putJson("/api/service-logs/{$supervisorLog->id}", ['user_id' => $detailer->id])
+            ->assertForbidden();
+
+        $this->assertSame($detailer->id, $own->fresh()->user_id);
+        $this->assertSame($supervisor->id, $supervisorLog->fresh()->user_id);
+    }
+
     public function test_detailer_cannot_touch_a_log_created_by_someone_else(): void
     {
         [$company, $service] = $this->makeCompanyWithService();

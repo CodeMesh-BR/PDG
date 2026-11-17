@@ -11,6 +11,7 @@ export type ReportFilters = {
 };
 
 export type ReportRow = {
+  service_log_id: number;
   company_id: number;
   company_name: string;
   user_id: number;
@@ -161,10 +162,35 @@ export async function fetchReportSummary(
   return res.json();
 }
 
+/** Safety cap when walking a paginated listing endpoint. */
+const LIST_MAX_PAGES = 50;
+
+/** Walks every page of a Laravel paginator so selects are not cut at the first page. */
+async function fetchAllPages(path: string, perPage?: number): Promise<any[]> {
+  const items: any[] = [];
+  let page = 1;
+  let lastPage = 1;
+
+  do {
+    const qs = new URLSearchParams({ page: String(page) });
+    if (perPage) qs.set("per_page", String(perPage));
+
+    const res = await fetch(`${API_BASE_URL}${path}?${qs}`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to load ${path} (${res.status})`);
+
+    const json = await res.json();
+    items.push(...(json.data ?? []));
+    lastPage = Number(json.last_page ?? 1);
+    page += 1;
+  } while (page <= lastPage && page <= LIST_MAX_PAGES);
+
+  return items;
+}
+
 export async function fetchUsers() {
-  const res = await fetch(`${API_BASE_URL}/users`, { headers: authHeaders() });
-  const data = await res.json();
-  return data.data ?? [];
+  return fetchAllPages("/users");
 }
 
 /** Companies linked to the logged-in user (company-scoped roles only). */
@@ -176,9 +202,52 @@ export async function fetchMyCompanies() {
 }
 
 export async function fetchCompanies() {
-  const res = await fetch(`${API_BASE_URL}/companies`, {
+  return fetchAllPages("/companies", 500);
+}
+
+export type ServiceLogUpdatePayload = {
+  /** sent only when the employee changes */
+  user_id?: number;
+  company_id: number;
+  service_id: number;
+  department_id: number | null;
+  car_plate: string | null;
+  vehicle_condition: "new" | "used" | null;
+  stock_number: string | null;
+  date: string;
+  quantity: number;
+  notes: string | null;
+};
+
+export async function fetchDepartments(): Promise<any[]> {
+  const res = await fetch(`${API_BASE_URL}/departments`, {
     headers: authHeaders(),
   });
+  if (!res.ok) throw new Error(`Failed to load departments (${res.status})`);
   const data = await res.json();
   return data.data ?? [];
+}
+
+/** Admin-only edit of a single service entry. Resolves with the API message on failure. */
+export async function updateServiceLog(
+  id: number,
+  payload: ServiceLogUpdatePayload,
+): Promise<{ ok: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE_URL}/service-logs/${id}`, {
+    method: "PUT",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (res.ok) return { ok: true };
+
+  let message = `Failed to update the service entry (${res.status}).`;
+  try {
+    const data = await res.json();
+    if (typeof data?.message === "string") message = data.message;
+  } catch {
+    // keep the generic message
+  }
+
+  return { ok: false, message };
 }

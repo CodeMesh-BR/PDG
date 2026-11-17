@@ -131,6 +131,7 @@ class ReportController extends Controller
         ------------------------------*/
         $query = (clone $base)
             ->selectRaw("
+                service_logs.id as service_log_id,
                 service_logs.company_id,
                 companies.name as company_name,
                 service_logs.user_id,
@@ -151,7 +152,9 @@ class ReportController extends Controller
                 service_logs.performed_at,
                 " . $this->amountSelect($showCosts) . "
             ")
+            // grouping by the log id keeps one row per entry so each row can be edited
             ->groupBy(
+                'service_logs.id',
                 'service_logs.company_id',
                 'companies.name',
                 'service_logs.user_id',
@@ -173,7 +176,8 @@ class ReportController extends Controller
             ->orderByDesc('service_logs.performed_at')
             ->orderBy('companies.name')
             ->orderBy('users.display_name')
-            ->orderBy('services.type');
+            ->orderBy('services.type')
+            ->orderByDesc('service_logs.id');
 
         /* -----------------------------
            PAGINAÇÃO
